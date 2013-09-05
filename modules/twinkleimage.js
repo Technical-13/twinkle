@@ -15,9 +15,9 @@
 
 Twinkle.image = function twinkleimage() {
 	if (mw.config.get('wgNamespaceNumber') === 6 &&
-	    !document.getElementById("mw-sharedupload") &&
-	    document.getElementById("mw-imagepage-section-filehistory")) {
-		
+			!document.getElementById("mw-sharedupload") &&
+			document.getElementById("mw-imagepage-section-filehistory")) {
+
 		Twinkle.addPortletLink(Twinkle.image.callback, "DI", "tw-di", "Nominate file for delayed speedy deletion");
 	}
 };
@@ -176,7 +176,6 @@ Twinkle.image.callback.choice = function twinkleimageCallbackChoose(event) {
 
 Twinkle.image.callback.evaluate = function twinkleimageCallbackEvaluate(event) {
 	var type, non_free, source, reason, replacement, old_image;
-	mw.config.set('wgPageName', mw.config.get('wgPageName').replace(/_/g, ' '));  // for queen/king/whatever and country!
 
 	var notify = event.target.notify.checked;
 	var types = event.target.type;
@@ -322,7 +321,7 @@ Twinkle.image.callbacks = {
 		}
 		notifytext += "}} ~~~~";
 		usertalkpage.setAppendText(notifytext);
-		usertalkpage.setEditSummary("Notification: tagging for deletion of [[" + mw.config.get('wgPageName') + "]]." + Twinkle.getPref('summaryAd'));
+		usertalkpage.setEditSummary("Notification: tagging for deletion of [[" + Morebits.pageNameNorm + "]]." + Twinkle.getPref('summaryAd'));
 		usertalkpage.setCreateOption('recreate');
 		switch (Twinkle.getPref('deliWatchUser')) {
 			case 'yes':
