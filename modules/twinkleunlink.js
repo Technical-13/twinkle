@@ -83,8 +83,6 @@ Twinkle.unlink.callback = function(presetReason) {
 };
 
 Twinkle.unlink.callback.evaluate = function twinkleunlinkCallbackEvaluate(event) {
-	mw.config.set('wgPageName', mw.config.get('wgPageName').replace(/_/g, ' '));  // for queen/king/whatever and country!
-
 	Twinkle.unlink.backlinksdone = 0;
 	Twinkle.unlink.imageusagedone = 0;
 
@@ -107,6 +105,7 @@ Twinkle.unlink.callback.evaluate = function twinkleunlinkCallbackEvaluate(event)
 			var myparams = $.extend({}, params);
 			var articlepage = new Morebits.wiki.page(pages[i], 'Unlinking in article "' + pages[i] + '"');
 			articlepage.setCallbackParameters(myparams);
+			articlepage.setBotEdit(true);  // unlink considered a floody operation
 			articlepage.load(imageusage ? Twinkle.unlink.callbacks.unlinkImageInstances : Twinkle.unlink.callbacks.unlinkBacklinks);
 		}
 	}
@@ -234,7 +233,7 @@ Twinkle.unlink.callbacks = {
 		var params = pageobj.getCallbackParameters();
 
 		var wikiPage = new Morebits.wikitext.page(text);
-		wikiPage.removeLink(mw.config.get('wgPageName'));
+		wikiPage.removeLink(Morebits.pageNameNorm);
 		text = wikiPage.getText();
 		if (text === oldtext) {
 			// Nothing to do, return
@@ -244,7 +243,7 @@ Twinkle.unlink.callbacks = {
 		}
 
 		pageobj.setPageText(text);
-		pageobj.setEditSummary("Removing link(s) to \"" + mw.config.get('wgPageName') + "\": " + params.reason + "." + Twinkle.getPref('summaryAd'));
+		pageobj.setEditSummary("Removing link(s) to \"" + Morebits.pageNameNorm + "\": " + params.reason + "." + Twinkle.getPref('summaryAd'));
 		pageobj.setCreateOption('nocreate');
 		pageobj.save(Twinkle.unlink.callbacks.success);
 	},
@@ -264,7 +263,7 @@ Twinkle.unlink.callbacks = {
 		}
 
 		pageobj.setPageText(text);
-		pageobj.setEditSummary("Commenting out use(s) of file \"" + mw.config.get('wgPageName') + "\": " + params.reason + "." + Twinkle.getPref('summaryAd'));
+		pageobj.setEditSummary("Commenting out use(s) of file \"" + Morebits.pageNameNorm + "\": " + params.reason + "." + Twinkle.getPref('summaryAd'));
 		pageobj.setCreateOption('nocreate');
 		pageobj.save(Twinkle.unlink.callbacks.success);
 	},

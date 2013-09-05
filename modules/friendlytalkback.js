@@ -40,7 +40,7 @@ Twinkle.talkback.callback = function( ) {
 					{
 						label: "Talkback: my talk page",
 						value: "mytalk",
-						checked: "true" 
+						checked: "true"
 					},
 					{
 						label: "Talkback: other user talk page",
@@ -104,7 +104,7 @@ Twinkle.talkback.callback.optoutStatus = function(apiobj) {
 	var $el = $(xml).find('el');
 
 	if ($el.length) {
-		Twinkle.talkback.optout = mw.config.get("wgUserName") + " prefers not to receive talkbacks";
+		Twinkle.talkback.optout = Morebits.getPageAssociatedUser() + " prefers not to receive talkbacks";
 		var url = $el.text();
 		if (url.indexOf("reason=") > -1) {
 			Twinkle.talkback.optout += ": " + decodeURIComponent(url.substring(url.indexOf("reason=") + 7)) + ".";
@@ -377,7 +377,7 @@ var callback_evaluate = function( e ) {
 		text += section + "|ts=~~~~~}}";
 
 		if( message ) {
-			text += "\n" + message + "  ~~~~";
+			text += "\n" + message.trim() + "  ~~~~";
 		} else if( Twinkle.getFriendlyPref("insertTalkbackSignature") ) {
 			text += "\n~~~~";
 		}
@@ -396,7 +396,7 @@ var callback_evaluate = function( e ) {
 		text += "|ts=~~~~~}}";
 
 		if( message ) {
-			text += "\n" + message + "  ~~~~";
+			text += "\n" + message.trim() + " ~~~~";
 		} else if( Twinkle.getFriendlyPref("insertTalkbackSignature") ) {
 			text += "\n~~~~";
 		}

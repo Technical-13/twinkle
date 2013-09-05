@@ -31,7 +31,7 @@ Twinkle.batchdelete.callback = function twinklebatchdeleteCallback() {
 	form.append( {
 			type: 'checkbox',
 			list: [
-				{ 
+				{
 					label: 'Delete pages',
 					name: 'delete_page',
 					value: 'delete',
@@ -78,7 +78,7 @@ Twinkle.batchdelete.callback = function twinklebatchdeleteCallback() {
 		}
 		else
 		{
-			var pathSplit = location.pathname.split('/');
+			var pathSplit = decodeURIComponent(location.pathname).split('/');
 			if (pathSplit.length < 3 || pathSplit[2] !== "Special:PrefixIndex") {
 				return;
 			}
@@ -116,7 +116,7 @@ Twinkle.batchdelete.callback = function twinklebatchdeleteCallback() {
 			'rvprop': [ 'size' ]
 		};
 	}
-	
+
 	var statusdiv = document.createElement( 'div' );
 	statusdiv.style.padding = '15px';  // just so it doesn't look broken
 	Window.setContent(statusdiv);
@@ -157,7 +157,7 @@ Twinkle.batchdelete.currentdeletor = 0;
 Twinkle.batchdelete.callback.evaluate = function twinklebatchdeleteCallbackEvaluate(event) {
 	Morebits.wiki.actionCompleted.notice = 'Status';
 	Morebits.wiki.actionCompleted.postfix = 'batch deletion is now complete';
-	mw.config.set('wgPageName', mw.config.get('wgPageName').replace(/_/g, ' '));  // for queen/king/whatever and country!
+
 	var pages = event.target.getChecked( 'pages' );
 	var reason = event.target.reason.value;
 	var delete_page = event.target.delete_page.checked;
@@ -247,14 +247,14 @@ Twinkle.batchdelete.callbacks = {
 
 			var wikipedia_page = new Morebits.wiki.page( self.params.page, 'Deleting page ' + self.params.page );
 			wikipedia_page.setEditSummary(self.params.reason + Twinkle.getPref('deletionSummaryAd'));
-			wikipedia_page.deletePage(function( apiobj ) { 
+			wikipedia_page.deletePage(function( apiobj ) {
 					--Twinkle.batchdelete.currentDeleteCounter;
 					var link = document.createElement( 'a' );
 					link.setAttribute( 'href', mw.util.wikiGetlink(self.params.page) );
 					link.setAttribute( 'title', self.params.page );
 					link.appendChild( document.createTextNode( self.params.page ) );
 					apiobj.statelem.info( [ 'completed (' , link , ')' ] );
-				} );	
+				} );
 		} else {
 			--Twinkle.batchdelete.currentDeleteCounter;
 		}

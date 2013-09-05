@@ -28,7 +28,7 @@ Twinkle.tag = function friendlytag() {
 		Twinkle.addPortletLink( Twinkle.tag.callback, "Tag", "friendly-tag", "Add maintenance tags to file" );
 	}
 	// article/draft article tagging
-	else if( ( mw.config.get('wgNamespaceNumber') === 0 || /^Wikipedia([ _]talk)?\:Articles[ _]for[ _]creation\//.exec(mw.config.get('wgPageName')) ) && mw.config.get('wgCurRevisionId') ) {
+	else if( ( mw.config.get('wgNamespaceNumber') === 0 || /^Wikipedia( talk)?\:Articles for creation\//.exec(Morebits.pageNameNorm) ) && mw.config.get('wgCurRevisionId') ) {
 		Twinkle.tag.mode = 'article';
 		Twinkle.addPortletLink( Twinkle.tag.callback, "Tag", "friendly-tag", "Add maintenance tags to article" );
 	}
@@ -183,7 +183,7 @@ Twinkle.tag.updateSortOrder = function(e) {
 					name: 'expertSubject',
 					type: 'input',
 					label: 'Name of relevant WikiProject: ',
-					tooltip: 'Optionally, enter the name of a WikiProject which might be able to help recruit an expert. Don\'t include the "WikiProject" prefix.',
+					tooltip: 'Optionally, enter the name of a WikiProject which might be able to help recruit an expert. Don\'t include the "WikiProject" prefix.'
 				};
 				break;
 			case "globalize":
@@ -254,7 +254,7 @@ Twinkle.tag.updateSortOrder = function(e) {
 					checkbox.subgroup.push({
 						name: 'mergeReason',
 						type: 'textarea',
-						label: 'Rationale for merge (will be posted on ' + 
+						label: 'Rationale for merge (will be posted on ' +
 							(tag === "merge to" ? 'the other article\'s' : 'this article\'s') + ' talk page):',
 						tooltip: 'Optional, but strongly recommended. Leave blank if not wanted. Only available if a single article name is entered.'
 					});
@@ -381,11 +381,10 @@ Twinkle.tag.article = {};
 
 Twinkle.tag.article.tags = {
 	"advert": "article is written like an advertisement",
-	"allplot": "article is almost entirely a plot summary",
+	"all plot": "article is almost entirely a plot summary",
 	"autobiography": "article is an autobiography and may not be written neutrally",
 	"BLP sources": "BLP article needs additional sources for verification",
 	"BLP unsourced": "BLP article has no sources at all (use BLP PROD instead for new articles)",
-	"cat improve": "article may require additional categories",
 	"citation style": "article has unclear or inconsistent inline citations",
 	"cleanup": "article may require cleanup",
 	"cleanup-reorganize": "article may be in need of reorganization to comply with Wikipedia's layout guidelines",
@@ -399,7 +398,7 @@ Twinkle.tag.article.tags = {
 	"dead end": "article has no links to other articles",
 	"disputed": "article has questionable factual accuracy",
 	"essay-like": "article is written like an essay and needs cleanup",
-	"expand language": "article can be expanded with material from a foreign-language Wikipedia",	
+	"expand language": "article can be expanded with material from a foreign-language Wikipedia",
 	"expert-subject": "article needs attention from an expert on the subject",
 	"external links": "article's external links may not follow content policies or guidelines",
 	"fansite": "article resembles a fansite",
@@ -407,6 +406,7 @@ Twinkle.tag.article.tags = {
 	"globalize": "article may not represent a worldwide view of the subject",
 	"GOCEinuse": "article is currently undergoing a major copy edit by the Guild of Copy Editors",
 	"hoax": "article may be a complete hoax",
+	"improve categories": "article may require additional categories",
 	"in-universe": "article subject is fictional and needs rewriting from a non-fictional perspective",
 	"incoherent": "article is incoherent or very hard to understand",
 	"in use": "article is undergoing a major edit for a short while",
@@ -484,7 +484,7 @@ Twinkle.tag.article.tagCategories = {
 			"very long"
 		],
 		"Fiction-related cleanup": [
-			"allplot",
+			"all plot",
 			"fiction",
 			"in-universe",
 			"plot"
@@ -562,7 +562,7 @@ Twinkle.tag.article.tagCategories = {
 			"no footnotes"
 		],
 		"Categories": [
-			"cat improve",
+			"improve categories",
 			"uncategorized"
 		]
 	},
@@ -584,39 +584,39 @@ Twinkle.tag.article.tagCategories = {
 Twinkle.tag.spellingList = [
 	{
 		label: '{{R from abbreviation}}: redirect from a title with an abbreviation',
-		value: 'R from abbreviation' 
+		value: 'R from abbreviation'
 	},
 	{
 		label: '{{R to list entry}}: redirect to a \"list of minor entities\"-type article which contains brief descriptions of subjects not notable enough to have separate articles',
-		value: 'R to list entry' 
+		value: 'R to list entry'
 	},
 	{
 		label: '{{R to section}}: similar to {{R to list entry}}, but when list is organized in sections, such as list of characters in a fictional universe.',
-		value: 'R to section' 
+		value: 'R to section'
 	},
 	{
 		label: '{{R from misspelling}}: redirect from a misspelling or typographical error',
-		value: 'R from misspelling' 
+		value: 'R from misspelling'
 	},
 	{
 		label: '{{R from alternative spelling}}: redirect from a title with a different spelling',
-		value: 'R from alternative spelling' 
+		value: 'R from alternative spelling'
 	},
 	{
 		label: '{{R from plural}}: redirect from a plural word to the singular equivalent',
-		value: 'R from plural' 
+		value: 'R from plural'
 	},
 	{
 		label: '{{R from related word}}: redirect from a related word',
-		value: 'R from related word' 
+		value: 'R from related word'
 	},
 	{
 		label: '{{R with possibilities}}: redirect from a more specific title to a more general, less detailed article, hence something which can and should be expanded',
-		value: 'R with possibilities' 
+		value: 'R with possibilities'
 	},
 	{
 		label: '{{R from member}}: redirect from a member of a group to a related topic such as the group, organization, or team that he or she belongs to',
-		value: 'R from member' 
+		value: 'R from member'
 	},
 	{
 		label: '{{R from other capitalisation}}: redirect from a title with another method of capitalisation',
@@ -627,39 +627,39 @@ Twinkle.tag.spellingList = [
 Twinkle.tag.alternativeList = [
 	{
 		label: '{{R from alternative name}}: redirect from a title that is another name, a pseudonym, a nickname, or a synonym',
-		value: 'R from alternative name' 
+		value: 'R from alternative name'
 	},
 	{
 		label: '{{R from full name}}: redirect from a title that is a complete or more complete name',
-		value: 'R from full name' 
+		value: 'R from full name'
 	},
 	{
 		label: '{{R from surname}}: redirect from a title that is a surname',
-		value: 'R from surname' 
+		value: 'R from surname'
 	},
 	{
 		label: '{{R from historic name}}: redirect from another name with a significant historic past as a region, state, city or such, but which is no longer known by that title or name',
-		value: 'R from historic name' 
+		value: 'R from historic name'
 	},
 	{
 		label: '{{R from scientific name}}: redirect from the scientific name to the common name',
-		value: 'R from scientific name' 
+		value: 'R from scientific name'
 	},
 	{
 		label: '{{R to scientific name}}: redirect from the common name to the scientific name',
-		value: 'R to scientific name' 
+		value: 'R to scientific name'
 	},
 	{
 		label: '{{R from name and country}}: redirect from the specific name to the briefer name',
-		value: 'R from name and country' 
+		value: 'R from name and country'
 	},
 	{
 		label: '{{R from alternative language}}: redirect from an English name to a name in another language, or vice-versa',
-		value: 'R from alternative language' 
+		value: 'R from alternative language'
 	},
 	{
 		label: '{{R from ASCII}}: redirect from a title in basic ASCII to the formal article title, with differences that are not diacritical marks (accents, umlauts, etc.)',
-		value: 'R from ASCII' 
+		value: 'R from ASCII'
 	},
 	{
 		label: '{{R from title without diacritics}}: redirect to the article title with diacritical marks (accents, umlauts, etc.)',
@@ -670,31 +670,31 @@ Twinkle.tag.alternativeList = [
 Twinkle.tag.administrativeList = [
 	{
 		label: '{{R from merge}}: redirect from a merged page in order to preserve its edit history',
-		value: 'R from merge' 
+		value: 'R from merge'
 	},
 	{
 		label: '{{R to disambiguation page}}: redirect to a disambiguation page',
-		value: 'R to disambiguation page' 
+		value: 'R to disambiguation page'
 	},
 	{
 		label: '{{R from duplicated article}}: redirect to a similar article in order to preserve its edit history',
-		value: 'R from duplicated article' 
+		value: 'R from duplicated article'
 	},
 	{
 		label: '{{R to decade}}: redirect from a year to the decade article',
-		value: 'R to decade' 
+		value: 'R to decade'
 	},
 	{
 		label: '{{R from shortcut}}: redirect from a Wikipedia shortcut',
-		value: 'R from shortcut' 
+		value: 'R from shortcut'
 	},
 	{
 		label: '{{R from CamelCase}}: redirect from a CamelCase title',
-		value: 'R from CamelCase' 
+		value: 'R from CamelCase'
 	},
 	{
 		label: '{{R from EXIF}}: redirect of a wikilink created from JPEG EXIF information (i.e. the \"metadata\" section on some image description pages)',
-		value: 'R from EXIF' 
+		value: 'R from EXIF'
 	},
 	{
 		label: '{{R from school}}: redirect from a school article that had very little information',
@@ -784,10 +784,10 @@ Twinkle.tag.file.replacementList = [
 
 // Contains those article tags that *do not* work inside {{multiple issues}}.
 Twinkle.tag.multipleIssuesExceptions = [
-	'cat improve',
 	'copypaste',
 	'expand language',
 	'GOCEinuse',
+	'improve categories',
 	'in use',
 	'merge',
 	'merge from',
@@ -811,7 +811,7 @@ Twinkle.tag.callbacks = {
 
 		var addTag = function friendlytagAddTag( tagIndex, tagName ) {
 			var currentTag = "";
-			if( tagName === 'uncategorized' || tagName === 'cat improve' ) {
+			if( tagName === 'uncategorized' || tagName === 'improve categories' ) {
 				pageText += '\n\n{{' + tagName +
 					'|date={{subst:CURRENTMONTHNAME}} {{subst:CURRENTYEAR}}}}';
 			} else {
@@ -860,7 +860,7 @@ Twinkle.tag.callbacks = {
 						} else {
 							currentTag += '|otherarticle=' + otherart;
 						}
-						break;						
+						break;
 					case 'expert-subject':
 						if (params.tagParameters.expertSubject) {
 							currentTag += '|1=' + params.tagParameters.expertSubject;
@@ -890,7 +890,7 @@ Twinkle.tag.callbacks = {
 									// discussArticle is the article whose talk page will contain the discussion
 									params.discussArticle = (tagName === "merge to" ? params.mergeTarget : mw.config.get('wgTitle'));
 									// nonDiscussArticle is the article which won't have the discussion
-									params.nonDiscussArticle = (tagName === "merge to" ? mw.config.get('wgTitle') : params.mergeTarget)
+									params.nonDiscussArticle = (tagName === "merge to" ? mw.config.get('wgTitle') : params.mergeTarget);
 									params.talkDiscussionTitle = 'Proposed merge with ' + params.nonDiscussArticle;
 								}
 								currentTag += '|discuss=Talk:' + params.discussArticle + '#' + params.talkDiscussionTitle;
@@ -936,7 +936,7 @@ Twinkle.tag.callbacks = {
 					Morebits.status.warn( 'Info', 'Found {{' + params.tags[i] +
 						'}} on the article already...excluding' );
 					// don't do anything else with merge tags
-					if (params.tags[i] === "merge" || params.tags[i] === "merge from" || 
+					if (params.tags[i] === "merge" || params.tags[i] === "merge from" ||
 						params.tags[i] === "merge to") {
 						params.mergeTarget = params.mergeReason = params.mergeTagOther = false;
 					}
@@ -1039,7 +1039,7 @@ Twinkle.tag.callbacks = {
 				var talkpage = new Morebits.wiki.page("Talk:" + params.discussArticle, "Posting rationale on talk page");
 				talkpage.setAppendText(talkpageText);
 				talkpage.setEditSummary('Proposing to merge [[' + params.nonDiscussArticle + ']] ' +
-					(tags.indexOf("merge") !== -1 ? 'with' : 'into') + ' [[' + params.discussArticle + ']]' + 
+					(tags.indexOf("merge") !== -1 ? 'with' : 'into') + ' [[' + params.discussArticle + ']]' +
 					Twinkle.getPref('summaryAd'));
 				talkpage.setWatchlist(Twinkle.getFriendlyPref('watchMergeDiscussions'));
 				talkpage.setCreateOption('recreate');
@@ -1053,9 +1053,9 @@ Twinkle.tag.callbacks = {
 				} else if (tags.indexOf("merge to") !== -1) {
 					otherTagName = "merge from";
 				}
-				var newParams = { 
+				var newParams = {
 					tags: [otherTagName],
-					mergeTarget: mw.config.get("wgPageName"),
+					mergeTarget: Morebits.pageNameNorm,
 					discussArticle: params.discussArticle,
 					talkDiscussionTitle: params.talkDiscussionTitle
 				};
@@ -1089,7 +1089,7 @@ Twinkle.tag.callbacks = {
 		var params = pageobj.getCallbackParameters();
 		var statelem = pageobj.getStatusElement();
 
-		var templateText = "{{subst:" + params.template + "|pg=" + mw.config.get("wgPageName") + "|Language=" + 
+		var templateText = "{{subst:" + params.template + "|pg=" + Morebits.pageNameNorm + "|Language=" +
 			(params.lang || "uncertain") + "|Comments=" + params.reason.trim() + "}} ~~~~";
 
 		var text, summary;
@@ -1097,7 +1097,7 @@ Twinkle.tag.callbacks = {
 			text = old_text + "\n\n" + templateText;
 			summary = "Translation cleanup requested on ";
 		} else {
-			text = old_text.replace(/\n+(==\s?Translated pages that could still use some cleanup\s?==)/, 
+			text = old_text.replace(/\n+(==\s?Translated pages that could still use some cleanup\s?==)/,
 				"\n\n" + templateText + "\n\n$1");
 			summary = "Translation" + (params.lang ? (" from " + params.lang) : "") + " requested on ";
 		}
@@ -1107,7 +1107,7 @@ Twinkle.tag.callbacks = {
 			return;
 		}
 		pageobj.setPageText(text);
-		pageobj.setEditSummary(summary + " [[" + mw.config.get("wgPageName") + "]]" + Twinkle.getPref('summaryAd'));
+		pageobj.setEditSummary(summary + " [[" + Morebits.pageNameNorm + "]]" + Twinkle.getPref('summaryAd'));
 		pageobj.setCreateOption('recreate');
 		pageobj.save();
 	},
@@ -1254,8 +1254,6 @@ Twinkle.tag.callbacks = {
 };
 
 Twinkle.tag.callback.evaluate = function friendlytagCallbackEvaluate(e) {
-	mw.config.set('wgPageName', mw.config.get('wgPageName').replace(/_/g, ' '));  // for queen/king/whatever and country!
-
 	var form = e.target;
 	var params = {};
 
@@ -1318,13 +1316,13 @@ Twinkle.tag.callback.evaluate = function friendlytagCallbackEvaluate(e) {
 	Morebits.simpleWindow.setButtonsEnabled( false );
 	Morebits.status.init( form );
 
-	Morebits.wiki.actionCompleted.redirect = mw.config.get('wgPageName');
+	Morebits.wiki.actionCompleted.redirect = Morebits.pageNameNorm;
 	Morebits.wiki.actionCompleted.notice = "Tagging complete, reloading article in a few seconds";
 	if (Twinkle.tag.mode === 'redirect') {
 		Morebits.wiki.actionCompleted.followRedirect = false;
 	}
 
-	var wikipedia_page = new Morebits.wiki.page(mw.config.get('wgPageName'), "Tagging " + Twinkle.tag.mode);
+	var wikipedia_page = new Morebits.wiki.page(Morebits.pageNameNorm, "Tagging " + Twinkle.tag.mode);
 	wikipedia_page.setCallbackParameters(params);
 	switch (Twinkle.tag.mode) {
 		case 'article':

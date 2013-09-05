@@ -109,28 +109,33 @@ Twinkle.protect.callback.protectionLevel = function twinkleprotectCallbackProtec
 	var xml = apiobj.getXML();
 	var result = [];
 
-	$(xml).find('pr').each(function(index, pr) {
-		var $pr = $(pr);
+	$(xml).find('pr, flagged').each(function(index, protectionEntry) {
+		var $protectionEntry = $(protectionEntry);
+		var type, level, expiry, cascade = false;
+		
+		if (protectionEntry.tagName.toLowerCase() === "flagged") {
+			type = "Pending changes";
+			level = $protectionEntry.attr('protection_level');
+			expiry = $protectionEntry.attr('protection_expiry');
+		} else {
+			type = Morebits.string.toUpperCaseFirstChar($protectionEntry.attr('type'));
+			level = $protectionEntry.attr('level');
+			expiry = $protectionEntry.attr('expiry');
+			cascade = $protectionEntry.attr('cascade') === '';
+		}
+		
 		var boldnode = document.createElement('b');
-		boldnode.textContent = Morebits.string.toUpperCaseFirstChar($pr.attr('type')) + ": " + $pr.attr('level');
+		boldnode.textContent = type + ": " + level;
 		result.push(boldnode);
-		if ($pr.attr('expiry') === 'infinity') {
+		if (expiry === 'infinity') {
 			result.push(" (indefinite) ");
 		} else {
-			result.push(" (expires " + new Date($pr.attr('expiry')).toUTCString() + ") ");
+			result.push(" (expires " + new Date(expiry).toUTCString() + ") ");
 		}
-		if ($pr.attr('cascade') === '') {
+		if (cascade) {
 			result.push("(cascading) ");
 		}
 	});
-
-	var $flagged = $(xml).find('flagged');
-	if ($flagged.length) {
-		var boldnode = document.createElement('b');
-		// impossible for now to determine the PC level/expiry using API; bug 24068
-		boldnode.textContent = "Pending changes: enabled";
-		result.push(boldnode);
-	}
 
 	if (!result.length) {
 		var boldnode = document.createElement('b');
@@ -814,7 +819,7 @@ Twinkle.protect.callback.changePreset = function twinkleprotectCallbackChangePre
 				form.movemodify.checked = false;
 				Twinkle.protect.formevents.movemodify({ target: form.movemodify });
 			}
-			
+
 			if (item.stabilize) {
 				form.pcmodify.checked = true;
 				Twinkle.protect.formevents.pcmodify({ target: form.pcmodify });
@@ -899,8 +904,8 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 
 			var statusInited = false;
 			var thispage;
-			
-			var allDone = function twinkleprotectCallbackAllDone() { 
+
+			var allDone = function twinkleprotectCallbackAllDone() {
 				if (thispage) {
 					thispage.getStatusElement().info("done");
 				}
@@ -921,7 +926,7 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 				} else {
 					thispage.setCreateProtection(form.createlevel.value, form.createexpiry.value);
 				}
-				
+
 				if (form.protectReason.value) {
 					thispage.setEditSummary(form.protectReason.value);
 				} else {
@@ -937,7 +942,7 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 
 				thispage.protect(next);
 			};
-			
+
 			var stabilizeIt = function twinkleprotectCallbackStabilizeIt() {
 				if (thispage) {
 					thispage.getStatusElement().info("done");
@@ -945,7 +950,7 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 
 				thispage = new Morebits.wiki.page(mw.config.get('wgPageName'), "Applying pending changes protection");
 				thispage.setFlaggedRevs(form.pclevel.value, form.pcexpiry.value);
-				
+
 				if (form.protectReason.value) {
 					thispage.setEditSummary(form.protectReason.value);
 				} else {
@@ -961,8 +966,8 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 
 				thispage.stabilize(allDone);
 			};
-			
-			if ((form.editmodify && form.editmodify.checked) || (form.movemodify && form.movemodify.checked) || 
+
+			if ((form.editmodify && form.editmodify.checked) || (form.movemodify && form.movemodify.checked) ||
 				!mw.config.get('wgArticleId')) {
 				if (form.pcmodify && form.pcmodify.checked) {
 					protectIt(stabilizeIt);
@@ -974,7 +979,7 @@ Twinkle.protect.callback.evaluate = function twinkleprotectCallbackEvaluate(e) {
 			} else {
 				alert("Please give Twinkle something to do! \nIf you just want to tag the page, you can choose the 'Tag page with protection template' option at the top.");
 			}
-			
+
 			break;
 
 		case 'tag':
@@ -1202,7 +1207,14 @@ Twinkle.protect.callbacks = {
 			'109': 'lbt'
 		};
 
-		var rppRe = new RegExp( '====\\s*\\{\\{\\s*' + ns2tag[ mw.config.get('wgNamespaceNumber') ] + '\\s*\\|\\s*' + RegExp.escape( mw.config.get('wgTitle'), true ) + '\\s*\\}\\}\\s*====', 'm' );
+		var linkTemplate = ns2tag[ mw.config.get('wgNamespaceNumber') ];
+		// support other namespaces like TimedText
+		// (this could support talk spaces better, but doesn't seem worth it)
+		if (!linkTemplate) {
+			linkTemplate = 'ln|' + Morebits.pageNameNorm.substring(0, Morebits.pageNameNorm.indexOf(':'));
+		}
+
+		var rppRe = new RegExp( '====\\s*\\{\\{\\s*' + linkTemplate + '\\s*\\|\\s*' + RegExp.escape( mw.config.get('wgTitle'), true ) + '\\s*\\}\\}\\s*====', 'm' );
 		var tag = rppRe.exec( text );
 
 		var rppLink = document.createElement('a');
@@ -1214,7 +1226,7 @@ Twinkle.protect.callbacks = {
 			return;
 		}
 
-		var newtag = '==== {{' + ns2tag[ mw.config.get('wgNamespaceNumber') ] + '|' + mw.config.get('wgTitle') +  '}} ====' + "\n";
+		var newtag = '==== {{' + linkTemplate + '|' + mw.config.get('wgTitle') + '}} ====' + "\n";
 		if( ( new RegExp( '^' + RegExp.escape( newtag ).replace( /\s+/g, '\\s*' ), 'm' ) ).test( text ) ) {
 			statusElement.error( [ 'There is already a protection request for this page at ', rppLink, ', aborting.' ] );
 			return;
@@ -1235,7 +1247,8 @@ Twinkle.protect.callbacks = {
 
 		words += params.typename;
 
-		newtag += "'''" + Morebits.string.toUpperCaseFirstChar(words) + ( params.reason !== '' ? ":''' " + params.reason : ".'''" ) + " ~~~~";
+		newtag += "'''" + Morebits.string.toUpperCaseFirstChar(words) + ( params.reason !== '' ? ( ":''' " + 
+			Morebits.string.formatReasonText(params.reason) ) : ".'''" ) + " ~~~~";
 
 		var reg;
 		if ( params.category === 'unprotect' ) {
@@ -1254,7 +1267,8 @@ Twinkle.protect.callbacks = {
 			return;
 		}
 		statusElement.status( 'Adding new request...' );
-		rppPage.setEditSummary( "Requesting " + params.typename + ' of [[' + mw.config.get('wgPageName').replace(/_/g, ' ') + ']].' + Twinkle.getPref('summaryAd') );
+		rppPage.setEditSummary( "Requesting " + params.typename + (params.typename === "pending changes" ? ' on [[' : ' of [[') +
+			Morebits.pageNameNorm + ']].' + Twinkle.getPref('summaryAd') );
 		rppPage.setPageText( text );
 		rppPage.setCreateOption( 'recreate' );
 		rppPage.save();
