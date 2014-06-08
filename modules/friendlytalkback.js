@@ -198,9 +198,13 @@ var callback_change_target = function( e ) {
 					label: "Noticeboard:",
 					event: function(e) {
 						if (e.target.value === "afchd") {
-							Morebits.quickForm.overrideElementLabel(e.target.form.section, "Title of draft (excluding the prefix): ");
+							Morebits.quickForm.overrideElementLabel(e.target.form.draftname, "Title of draft (excluding the prefix): ");
+							Morebits.quickForm.setElementTooltipVisibility(e.target.form.draftname, false);
+							Morebits.quickForm.overrideElementLabel(e.target.form.section, "The section heading on the page where you left a message: ");
 							Morebits.quickForm.setElementTooltipVisibility(e.target.form.section, false);
 						} else {
+							Morebits.quickForm.resetElementLabel(e.target.form.draftname);
+							Morebits.quickForm.setElementTooltipVisibility(e.target.form.draftname, true);
 							Morebits.quickForm.resetElementLabel(e.target.form.section);
 							Morebits.quickForm.setElementTooltipVisibility(e.target.form.section, true);
 						}
@@ -368,7 +372,7 @@ var callback_evaluate = function( e ) {
 	if ( tbtarget === "notice" ) {
 		switch (page) {
 			case "afchd":
-				text += "\n\n{{subst:AFCHD/u|" + section + "}} ~~~~";
+				text += "\n\n{{subst:AFCHD/u|" + draftname + "|" + section + "}} ~~~~";
 				talkpage.setEditSummary( "You have replies at the [[Wikipedia:AFCHD|Articles for Creation Help Desk]]" + Twinkle.getPref("summaryAd") );
 				break;
 			case "an":
