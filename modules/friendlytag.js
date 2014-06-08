@@ -28,23 +28,56 @@ Twinkle.tag = function friendlytag() {
 		Twinkle.addPortletLink( Twinkle.tag.callback, "Tag", "friendly-tag", "Add maintenance tags to file" );
 	}
 	// article/draft article tagging
-	else if( ( mw.config.get('wgNamespaceNumber') === 0 || /^Wikipedia( talk)?\:Articles for creation\//.exec(Morebits.pageNameNorm) ) && mw.config.get('wgCurRevisionId') ) {
+	else if( ( mw.config.get('wgNamespaceNumber') === 0 || mw.config.get('wgNamespaceNumber') === 118 || /^Wikipedia( talk)?\:Articles for creation\//.exec(Morebits.pageNameNorm) ) && mw.config.get('wgCurRevisionId') ) {
 		Twinkle.tag.mode = 'article';
 		Twinkle.addPortletLink( Twinkle.tag.callback, "Tag", "friendly-tag", "Add maintenance tags to article" );
 	}
 };
 
 Twinkle.tag.callback = function friendlytagCallback( uid ) {
-	var Window = new Morebits.simpleWindow( 630, (Twinkle.tag.mode === "article") ? 450 : 400 );
+	var Window = new Morebits.simpleWindow( 630, (Twinkle.tag.mode === "article") ? 500 : 400 );
 	Window.setScriptName( "Twinkle" );
 	// anyone got a good policy/guideline/info page/instructional page link??
 	Window.addFooterLink( "Twinkle help", "WP:TW/DOC#tag" );
 
 	var form = new Morebits.quickForm( Twinkle.tag.callback.evaluate );
 
+	if (document.getElementsByClassName("patrollink").length) {
+		form.append( {
+			type: 'checkbox',
+			list: [
+				{
+					label: 'Mark the page as patrolled',
+					value: 'patrolPage',
+					name: 'patrolPage',
+					checked: Twinkle.getFriendlyPref('markTaggedPagesAsPatrolled')
+				}
+			]
+		} );
+	}
+
 	switch( Twinkle.tag.mode ) {
 		case 'article':
 			Window.setTitle( "Article maintenance tagging" );
+
+			form.append({
+				type: 'select',
+				name: 'sortorder',
+				label: 'View this list:',
+				tooltip: 'You can change the default view order in your Twinkle preferences (WP:TWPREFS).',
+				event: Twinkle.tag.updateSortOrder,
+				list: [
+					{ type: 'option', value: 'cat', label: 'By categories', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'cat' },
+					{ type: 'option', value: 'alpha', label: 'In alphabetical order', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'alpha' }
+				]
+			});
+
+			form.append({
+				type: 'div',
+				id: 'tagWorkArea',
+				className: 'morebits-scrollbox',
+				style: 'max-height: 28em'
+			});
 
 			form.append( {
 					type: 'checkbox',
@@ -60,24 +93,6 @@ Twinkle.tag.callback = function friendlytagCallback( uid ) {
 				}
 			);
 
-			form.append({
-				type: 'select',
-				name: 'sortorder',
-				label: 'View this list:',
-				tooltip: 'You can change the default view order in your Twinkle preferences (WP:TWPREFS).',
-				event: Twinkle.tag.updateSortOrder,
-				list: [
-					{ type: 'option', value: 'cat', label: 'By categories', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'cat' },
-					{ type: 'option', value: 'alpha', label: 'In alphabetical order', selected: Twinkle.getFriendlyPref('tagArticleSortOrder') === 'alpha' }
-				]
-			});
-
-			form.append( { type: 'div', id: 'tagWorkArea' } );
-
-			if( Twinkle.getFriendlyPref('customTagList').length ) {
-				form.append( { type: 'header', label: 'Custom tags' } );
-				form.append( { type: 'checkbox', name: 'articleTags', list: Twinkle.getFriendlyPref('customTagList') } );
-			}
 			break;
 
 		case 'file':
@@ -137,12 +152,13 @@ Twinkle.tag.checkedTags = [];
 
 Twinkle.tag.updateSortOrder = function(e) {
 	var sortorder = e.target.value;
-	var $workarea = $(e.target.form).find("div#tagWorkArea");
 
 	Twinkle.tag.checkedTags = e.target.form.getChecked("articleTags");
 	if (!Twinkle.tag.checkedTags) {
 		Twinkle.tag.checkedTags = [];
 	}
+	
+	var container = new Morebits.quickForm.element({ type: "fragment" });
 
 	// function to generate a checkbox, with appropriate subgroup if needed
 	var makeCheckbox = function(tag, description) {
@@ -268,24 +284,37 @@ Twinkle.tag.updateSortOrder = function(e) {
 						type: 'input',
 						label: 'Language of article (if known): ',
 						tooltip: 'Consider looking at [[WP:LRC]] for help. If listing the article at PNT, please try to avoid leaving this box blank, unless you are completely unsure.'
-					},
-					{
-						name: 'translationPostAtPNT',
+					}
+				];
+				if (tag === "not English") {
+					checkbox.subgroup.push({
+						name: 'translationNotify',
 						type: 'checkbox',
 						list: [
 							{
-								label: 'List this article at Wikipedia:Pages needing translation into English (PNT)',
-								checked: true
+								label: 'Notify article creator',
+								checked: true,
+								tooltip: "Places {{uw-notenglish}} on the creator's talk page."
 							}
 						]
-					},
-					{
-						name: 'translationComments',
-						type: 'textarea',
-						label: 'Additional comments to post at PNT',
-						tooltip: 'Optional, and only relevant if "List this article ..." above is checked.'
-					}
-				];
+					});
+				}
+				checkbox.subgroup.push({
+					name: 'translationPostAtPNT',
+					type: 'checkbox',
+					list: [
+						{
+							label: 'List this article at Wikipedia:Pages needing translation into English (PNT)',
+							checked: true
+						}
+					]
+				});
+				checkbox.subgroup.push({
+					name: 'translationComments',
+					type: 'textarea',
+					label: 'Additional comments to post at PNT',
+					tooltip: 'Optional, and only relevant if "List this article ..." above is checked.'
+				});
 				break;
 			case "notability":
 				checkbox.subgroup = {
@@ -316,11 +345,6 @@ Twinkle.tag.updateSortOrder = function(e) {
 
 	// categorical sort order
 	if (sortorder === "cat") {
-		var div = new Morebits.quickForm.element({
-			type: "div",
-			id: "tagWorkArea"
-		});
-
 		// function to iterate through the tags and create a checkbox for each one
 		var doCategoryCheckboxes = function(subdiv, array) {
 			var checkboxes = [];
@@ -338,8 +362,8 @@ Twinkle.tag.updateSortOrder = function(e) {
 		var i = 0;
 		// go through each category and sub-category and append lists of checkboxes
 		$.each(Twinkle.tag.article.tagCategories, function(title, content) {
-			div.append({ type: "header", id: "tagHeader" + i, label: title });
-			var subdiv = div.append({ type: "div", id: "tagSubdiv" + i++ });
+			container.append({ type: "header", id: "tagHeader" + i, label: title });
+			var subdiv = container.append({ type: "div", id: "tagSubdiv" + i++ });
 			if ($.isArray(content)) {
 				doCategoryCheckboxes(subdiv, content);
 			} else {
@@ -349,12 +373,6 @@ Twinkle.tag.updateSortOrder = function(e) {
 				});
 			}
 		});
-
-		var rendered = div.render();
-		$workarea.replaceWith(rendered);
-		var $rendered = $(rendered);
-		$rendered.find("h5").css({ 'font-size': '110%', 'margin-top': '1em' });
-		$rendered.find("div").filter(":has(span.quickformDescription)").css({ 'margin-top': '0.4em' });
 	}
 	// alphabetical sort order
 	else {
@@ -362,13 +380,38 @@ Twinkle.tag.updateSortOrder = function(e) {
 		$.each(Twinkle.tag.article.tags, function(tag, description) {
 			checkboxes.push(makeCheckbox(tag, description));
 		});
-		var tags = new Morebits.quickForm.element({
+		container.append({
 			type: "checkbox",
 			name: "articleTags",
 			list: checkboxes
 		});
-		$workarea.empty().append(tags.render());
 	}
+
+	// append any custom tags
+	if (Twinkle.getFriendlyPref('customTagList').length) {
+		container.append({ type: 'header', label: 'Custom tags' });
+		container.append({ type: 'checkbox', name: 'articleTags', list: Twinkle.getFriendlyPref('customTagList') });
+	}
+
+	var $workarea = $(e.target.form).find("div#tagWorkArea");
+	var rendered = container.render();
+	$workarea.empty().append(rendered);
+
+	// style adjustments
+	$workarea.find("h5").css({ 'font-size': '110%' });
+	$workarea.find("h5:not(:first-child)").css({ 'margin-top': '1em' });
+	$workarea.find("div").filter(":has(span.quickformDescription)").css({ 'margin-top': '0.4em' });
+
+	// add a link to each template's description page
+	$.each(Morebits.quickForm.getElements(e.target.form, "articleTags"), function(index, checkbox) {
+		var $checkbox = $(checkbox);
+		var link = Morebits.htmlNode("a", ">");
+		link.setAttribute("class", "tag-template-link");
+		link.setAttribute("href", mw.util.getUrl("Template:" + 
+			Morebits.string.toUpperCaseFirstChar($checkbox.val())));
+		link.setAttribute("target", "_blank");
+		$checkbox.parent().append(["\u00A0", link]);
+	});
 };
 
 
@@ -397,7 +440,7 @@ Twinkle.tag.article.tags = {
 	"copypaste": "article appears to have been copied and pasted from a source",
 	"dead end": "article has no links to other articles",
 	"disputed": "article has questionable factual accuracy",
-	"essay-like": "article is written like an essay and needs cleanup",
+	"essay-like": "article is written like a personal reflection or opinion essay",
 	"expand language": "article can be expanded with material from a foreign-language Wikipedia",
 	"expert-subject": "article needs attention from an expert on the subject",
 	"external links": "article's external links may not follow content policies or guidelines",
@@ -421,6 +464,7 @@ Twinkle.tag.article.tags = {
 	"metricate": "article exclusively uses non-SI units of measurement",
 	"more footnotes": "article has some references, but insufficient in-text citations",
 	"new unreviewed article": "mark article for later review",
+	"news release": "article reads like a news release",
 	"no footnotes": "article has references, but no in-text citations",
 	"non-free": "article may contain excessive or improper use of copyrighted materials",
 	"notability": "article's subject may not meet the notability guideline",
@@ -498,6 +542,7 @@ Twinkle.tag.article.tagCategories = {
 			"advert",
 			"essay-like",
 			"fansite",
+			"news release",
 			"prose",
 			"technical",
 			"tense",
@@ -545,8 +590,8 @@ Twinkle.tag.article.tagCategories = {
 	},
 	"Specific content issues": {
 		"Language": [
-			"not English",  // has a subgroup with text input
-			"rough translation",  // has a subgroup with text input
+			"not English",  // has a subgroup with several options
+			"rough translation",  // has a subgroup with several options
 			"expand language"
 		],
 		"Links": [
@@ -642,6 +687,10 @@ Twinkle.tag.alternativeList = [
 		value: 'R from historic name'
 	},
 	{
+		label: '{{R from phrase}}: redirect from a phrase to a more general relevant article covering the topic',
+		value: 'R from phrase'
+	},
+	{
 		label: '{{R from scientific name}}: redirect from the scientific name to the common name',
 		value: 'R from scientific name'
 	},
@@ -709,7 +758,6 @@ Twinkle.tag.file = {};
 Twinkle.tag.file.licenseList = [
 	{ label: '{{Bsr}}: source info consists of bare image URL/generic base URL only', value: 'Bsr' },
 	{ label: '{{Non-free reduce}}: non-low-resolution fair use image (or too-long audio clip, etc)', value: 'Non-free reduce' },
-	{ label: '{{Non-free reduced}}: fair use media which has been reduced (old versions need to be deleted)', value: 'Non-free reduced' },
 	{ label: '{{Orphaned non-free revisions}}: fair use media with old revisions that need to be deleted', value: 'subst:orfurrev' }
 ];
 
@@ -807,7 +855,7 @@ Twinkle.tag.callbacks = {
 		    tags = [], groupableTags = [], i, totalTags;
 
 		// Remove tags that become superfluous with this action
-		var pageText = pageobj.getPageText().replace(/\{\{\s*(New unreviewed article|Userspace draft)\s*(\|(?:\{\{[^{}]*\}\}|[^{}])*)?\}\}\s*/ig, "");
+		var pageText = pageobj.getPageText().replace(/\{\{\s*([Nn]ew unreviewed article|[Uu]nreviewed|[Uu]serspace draft)\s*(\|(?:\{\{[^{}]*\}\}|[^{}])*)?\}\}\s*/g, "");
 
 		var addTag = function friendlytagAddTag( tagIndex, tagName ) {
 			var currentTag = "";
@@ -865,6 +913,9 @@ Twinkle.tag.callbacks = {
 						if (params.tagParameters.expertSubject) {
 							currentTag += '|1=' + params.tagParameters.expertSubject;
 						}
+						break;
+					case 'news release':
+						currentTag += '|1=article';
 						break;
 					case 'not English':
 					case 'rough translation':
@@ -1077,9 +1128,25 @@ Twinkle.tag.callbacks = {
 				});
 				pntPage.load(Twinkle.tag.callbacks.translationListPage);
 			}
+			if (params.translationNotify) {
+				pageobj.lookupCreator(function(innerPageobj) {
+					var initialContrib = innerPageobj.getCreator();
+					var userTalkPage = new Morebits.wiki.page('User talk:' + initialContrib,
+						'Notifying initial contributor (' + initialContrib + ')');
+					var notifytext = "\n\n== Your article [[" + Morebits.pageNameNorm + "]]==\n" + 
+						"{{subst:uw-notenglish|1=" + Morebits.pageNameNorm +
+						(params.translationPostAtPNT ? "" : "|nopnt=yes") + "}} ~~~~";
+					userTalkPage.setAppendText(notifytext);
+					userTalkPage.setEditSummary("Notice: Please use English when contributing to the English Wikipedia." +
+						Twinkle.getPref('summaryAd'));
+					userTalkPage.setCreateOption('recreate');
+					userTalkPage.setFollowRedirect(true);
+					userTalkPage.append();
+				});
+			}
 		});
 
-		if( Twinkle.getFriendlyPref('markTaggedPagesAsPatrolled') ) {
+		if( params.patrol ) {
 			pageobj.patrol();
 		}
 	},
@@ -1208,7 +1275,7 @@ Twinkle.tag.callbacks = {
 							currentTag += "|reason=" + input;
 						}
 						break;
-					case "Non-free reduced":
+					case "subst:orfurrev":
 						//remove {{non-free reduce}} and redirects
 						text = text.replace(/\{\{\s*(Template\s*:\s*)?(Non-free reduce|FairUseReduce|Fairusereduce|Fair Use Reduce|Fair use reduce|Reduce size|Reduce|Fair-use reduce|Image-toobig|Comic-ovrsize-img|Non-free-reduce|Nfr|Smaller image|Nonfree reduce)\s*(\|(?:\{\{[^{}]*\}\}|[^{}])*)?\}\}\s*/ig, "");
 						currentTag += "|date={{subst:date}}";
@@ -1247,7 +1314,7 @@ Twinkle.tag.callbacks = {
 		pageobj.setCreateOption('nocreate');
 		pageobj.save();
 
-		if( Twinkle.getFriendlyPref('markTaggedPagesAsPatrolled') ) {
+		if( params.patrol ) {
 			pageobj.patrol();
 		}
 	}
@@ -1256,6 +1323,9 @@ Twinkle.tag.callbacks = {
 Twinkle.tag.callback.evaluate = function friendlytagCallbackEvaluate(e) {
 	var form = e.target;
 	var params = {};
+	if (form.patrolPage) {
+		params.patrol = form.patrolPage.checked;
+	}
 
 	switch (Twinkle.tag.mode) {
 		case 'article':
@@ -1275,6 +1345,7 @@ Twinkle.tag.callback.evaluate = function friendlytagCallbackEvaluate(e) {
 			params.mergeTagOther = form["articleTags.mergeTagOther"] ? form["articleTags.mergeTagOther"].checked : false;
 			// common to {{not English}}, {{rough translation}}
 			params.translationLanguage = form["articleTags.translationLanguage"] ? form["articleTags.translationLanguage"].value : null;
+			params.translationNotify = form["articleTags.translationNotify"] ? form["articleTags.translationNotify"].checked : null;
 			params.translationPostAtPNT = form["articleTags.translationPostAtPNT"] ? form["articleTags.translationPostAtPNT"].checked : null;
 			params.translationComments = form["articleTags.translationComments"] ? form["articleTags.translationComments"].value : null;
 			break;

@@ -135,7 +135,11 @@ Twinkle.welcome.callback = function friendlywelcomeCallback( uid ) {
 			]
 		});
 
-	form.append( { type: 'div', id: 'welcomeWorkArea' } );
+	form.append( {
+			type: 'div',
+			id: 'welcomeWorkArea',
+			className: 'morebits-scrollbox'
+		} );
 
 	form.append( {
 			type: 'input',
@@ -167,16 +171,12 @@ Twinkle.welcome.callback = function friendlywelcomeCallback( uid ) {
 
 Twinkle.welcome.populateWelcomeList = function(e) {
 	var type = e.target.value;
-	var $workarea = $(e.target.form).find("div#welcomeWorkArea");
 
-	var div = new Morebits.quickForm.element({
-		type: "div",
-		id: "welcomeWorkArea"
-	});
+	var container = new Morebits.quickForm.element({ type: "fragment" });
 
 	if ((type === "standard" || type === "anonymous") && Twinkle.getFriendlyPref("customWelcomeList").length) {
-		div.append({ type: 'header', label: 'Custom welcome templates' });
-		div.append({
+		container.append({ type: 'header', label: 'Custom welcome templates' });
+		container.append({
 			type: 'radio',
 			name: 'template',
 			list: Twinkle.getFriendlyPref("customWelcomeList"),
@@ -185,7 +185,7 @@ Twinkle.welcome.populateWelcomeList = function(e) {
 	}
 
 	var appendTemplates = function(list) {
-		div.append({
+		container.append({
 			type: 'radio',
 			name: 'template',
 			list: list.map(function(obj) {
@@ -206,7 +206,7 @@ Twinkle.welcome.populateWelcomeList = function(e) {
 
 	switch (type) {
 		case "standard":
-			div.append({ type: 'header', label: 'General welcome templates' });
+			container.append({ type: 'header', label: 'General welcome templates' });
 			appendTemplates([
 				"welcome",
 				"welcome-short",
@@ -219,31 +219,34 @@ Twinkle.welcome.populateWelcomeList = function(e) {
 				"welcome teacher",
 				"welcome non-latin"
 			]);
-			div.append({ type: 'header', label: 'Problem user welcome templates' });
+			container.append({ type: 'header', label: 'Problem user welcome templates' });
 			appendTemplates([
 				"welcomelaws",
 				"first article",
+				"welcometest",
 				"welcomevandal",
 				"welcomenpov",
 				"welcomespam",
 				"welcomeunsourced",
 				"welcomeauto",
 				"welcome-COI",
+				"welcome-delete",
 				"welcome-image"
 			]);
 			break;
 		case "anonymous":
-			div.append({ type: 'header', label: 'Anonymous user welcome templates' });
+			container.append({ type: 'header', label: 'Anonymous user welcome templates' });
 			appendTemplates([
 				"welcome-anon",
 				"welcome-anon-border",
 				"welcome-anon-test",
-				"welcome-anon-vandal",
-				"welcome-anon-constructive"
+				"welcome-anon-unconstructive",
+				"welcome-anon-constructive",
+				"welcome-anon-delete"
 			]);
 			break;
 		case "wikiProject":
-			div.append({ type: 'header', label: 'WikiProject-specific welcome templates' });
+			container.append({ type: 'header', label: 'WikiProject-specific welcome templates' });
 			appendTemplates([
 				"welcome-au",
 				"welcome-bd",
@@ -267,11 +270,12 @@ Twinkle.welcome.populateWelcomeList = function(e) {
 				"welcome-starwars",
 				"welcome-ch",
 				"welcome-uk",
-				"welcome-videogames"
+				"welcome-videogames",
+				"TWA invite"
 			]);
 			break;
 		case "nonEnglish":
-			div.append({ type: 'header', label: 'Non-English welcome templates' });
+			container.append({ type: 'header', label: 'Non-English welcome templates' });
 			appendTemplates([
 				"welcomeen-sq",
 				"welcomeen-zh",
@@ -293,13 +297,12 @@ Twinkle.welcome.populateWelcomeList = function(e) {
 			]);
 			break;
 		default:
-			div.append({ type: 'div', label: 'Twinkle.welcome.populateWelcomeList: something went wrong' });
+			container.append({ type: 'div', label: 'Twinkle.welcome.populateWelcomeList: something went wrong' });
 			break;
 	}
 
-	var rendered = div.render();
-	rendered.className = "quickform-scrollbox";
-	$workarea.replaceWith(rendered);
+	var rendered = container.render();
+	$(e.target.form).find("div#welcomeWorkArea").empty().append(rendered);
 
 	var firstRadio = e.target.form.template[0];
 	firstRadio.checked = true;
@@ -351,7 +354,7 @@ Twinkle.welcome.templates = {
 	"welcome-screen": {
 		description: "welcome message with clear, annotated table of 10 links",
 		linkedArticle: false,
-		syntax: "$HEADER$ {{subst:welcome-screen}}"
+		syntax: "$HEADER$ {{subst:welcome-screen|static=true}}"
 	},
 	"welcome-belated": {
 		description: "welcome for users with more substantial contributions",
@@ -386,6 +389,11 @@ Twinkle.welcome.templates = {
 		linkedArticle: true,
 		syntax: "{{subst:first article|$ARTICLE$|$USERNAME$}}"
 	},
+	"welcometest": {
+		description: "for someone whose initial efforts appear to be tests",
+		linkedArticle: true,
+		syntax: "{{subst:welcometest|$ARTICLE$|$USERNAME$}} ~~~~"
+	},
 	"welcomevandal": {
 		description: "for someone whose initial efforts appear to be vandalism",
 		linkedArticle: true,
@@ -416,10 +424,15 @@ Twinkle.welcome.templates = {
 		linkedArticle: true,
 		syntax: "{{subst:welcome-COI|$USERNAME$|art=$ARTICLE$}} ~~~~"
 	},
+	"welcome-delete": {
+		description: "for someone who has been removing information from articles",
+		linkedArticle: true,
+		syntax: "{{subst:welcome-delete|$ARTICLE$|$USERNAME$}} ~~~~"
+	},
 	"welcome-image": {
 		description: "welcome with additional information about images (policy and procedure)",
-		linkedArticle: false,
-		syntax: "{{subst:welcome-image|$USERNAME$}}"
+		linkedArticle: true,
+		syntax: "{{subst:welcome-image|$USERNAME$|art=$ARTICLE$}}"
 	},
 
 	// ANONYMOUS USER WELCOMES
@@ -439,15 +452,20 @@ Twinkle.welcome.templates = {
 		linkedArticle: true,
 		syntax: "{{subst:welcome-anon-test|$ARTICLE$|$USERNAME$}} ~~~~"
 	},
-	"welcome-anon-vandal": {
-		description: "for anonymous users who have vandalized a page",
+	"welcome-anon-unconstructive": {
+		description: "for anonymous users who have vandalized or made unhelpful edits",
 		linkedArticle: true,
-		syntax: "{{subst:welcome-anon-vandal|$ARTICLE$|$USERNAME$}}"
+		syntax: "{{subst:welcome-anon-unconstructive|$ARTICLE$|$USERNAME$}}"
 	},
 	"welcome-anon-constructive": {
-		description: "for anonymous users who fight vandalism and edit constructively",
+		description: "for anonymous users who fight vandalism or edit constructively",
 		linkedArticle: true,
 		syntax: "{{subst:welcome-anon-constructive|art=$ARTICLE$}}"
+	},
+	"welcome-anon-delete": {
+		description: "for anonymous users who have removed content from pages",
+		linkedArticle: true,
+		syntax: "{{subst:welcome-anon-delete|$ARTICLE$|$USERNAME$}} ~~~~"
 	},
 
 	// WIKIPROJECT-SPECIFIC WELCOMES
@@ -566,6 +584,11 @@ Twinkle.welcome.templates = {
 		description: "welcome for users with an apparent interest in video game topics",
 		linkedArticle: false,
 		syntax: "{{subst:welcome-videogames}}"
+	},
+	"TWA invite": {
+		description: "invite the user to The Wikipedia Adventure (not a welcome template)",
+		linkedArticle: false,
+		syntax: "{{WP:TWA/Invite|signature=~~~~}}"
 	},
 
 	// NON-ENGLISH WELCOMES

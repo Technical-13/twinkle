@@ -14,8 +14,8 @@
  */
 
 Twinkle.arv = function twinklearv() {
-	var username = Morebits.getPageAssociatedUser();
-	if ( username === false ) {
+	var username = mw.config.get('wgRelevantUserName');
+	if ( !username ) {
 		return;
 	}
 
@@ -360,7 +360,7 @@ Twinkle.arv.callback.changeCategory = function (e) {
 						$entry.append('<span>"'+rev.parsedcomment+'" at <a href="'+mw.config.get('wgScript')+'?diff='+rev.revid+'">'+moment(rev.timestamp).calendar()+'</a></span>').appendTo($diffs);
 					}
 				}).fail(function(data){
-					console.log( 'API failed :(', error );
+					console.log( 'API failed :(', data );
 				});
 				var $warnings = $(root).find('[name=warnings]');
 				$warnings.find('.entry').remove();
@@ -397,7 +397,7 @@ Twinkle.arv.callback.changeCategory = function (e) {
 						$entry.append('<span>"'+rev.parsedcomment+'" at <a href="'+mw.config.get('wgScript')+'?diff='+rev.revid+'">'+moment(rev.timestamp).calendar()+'</a></span>').appendTo($warnings);
 					}
 				}).fail(function(data){
-					console.log( 'API failed :(', error );
+					console.log( 'API failed :(', data );
 				});
 
 				var $resolves = $(root).find('[name=resolves]');
@@ -405,7 +405,7 @@ Twinkle.arv.callback.changeCategory = function (e) {
 
 				var t = new mw.Title(value);
 				var ns = t.getNamespaceId();
-				talk_page = (new mw.Title(t.getMain(), ns%2? ns : ns+1)).getPrefixedText();
+				var talk_page = (new mw.Title(t.getMain(), ns%2? ns : ns+1)).getPrefixedText();
 
 				api.get({
 					action: 'query',
@@ -455,7 +455,7 @@ Twinkle.arv.callback.changeCategory = function (e) {
 					$free_entry.append($free_label).append($free_input).appendTo($resolves);
 
 				}).fail(function(data){
-					console.log( 'API failed :(', error );
+					console.log( 'API failed :(', data );
 				});
 			}
 		} );
@@ -536,11 +536,6 @@ Twinkle.arv.callback.evaluate = function(e) {
 				reason = 'On [[' + form.page.value.replace( /^(Image|Category|File):/i, ':$1:' ) + ']]';
 
 				if ( form.badid.value !== '' ) {
-					var query = {
-						'title': form.page.value,
-						'diff': form.badid.value,
-						'oldid': form.goodid.value
-					};
 					reason += ' ({{diff|' + form.page.value + '|' + form.badid.value + '|' + form.goodid.value + '|diff}})';
 				}
 				reason += ':';
@@ -552,7 +547,11 @@ Twinkle.arv.callback.evaluate = function(e) {
 			if (comment !== "" ) {
 				reason += (reason === "" ? "" : ". ") + comment;
 			}
-			reason += ". ~~~~";
+			reason = reason.trim();
+			if (reason.search(/[.?!;]$/) === -1) {
+				reason += ".";
+			}
+			reason += " ~~~~";
 			reason = reason.replace(/\r?\n/g, "\n*:");  // indent newlines
 
 			Morebits.simpleWindow.setButtonsEnabled( false );
@@ -570,7 +569,8 @@ Twinkle.arv.callback.evaluate = function(e) {
 
 				// check if user has already been reported
 				if (new RegExp( "\\{\\{\\s*(?:(?:[Ii][Pp])?[Vv]andal|[Uu]serlinks)\\s*\\|\\s*(?:1=)?\\s*" + RegExp.escape( uid, true ) + "\\s*\\}\\}" ).test(text)) {
-					aivPage.getStatusElement().info( 'Report already present, will not add a new one' );
+					aivPage.getStatusElement().error( 'Report already present, will not add a new one' );
+					Morebits.status.printUserText( reason, 'The comments you typed are provided below, in case you wish to manually post them under the existing report for this user at AIV:' );
 					return;
 				}
 				aivPage.getStatusElement().status( 'Adding new report...' );
@@ -620,6 +620,7 @@ Twinkle.arv.callback.evaluate = function(e) {
 				// check if user has already been reported
 				if (new RegExp( "\\{\\{\\s*user-uaa\\s*\\|\\s*(1\\s*=\\s*)?" + RegExp.escape(uid, true) + "\\s*(\\||\\})" ).test(text)) {
 					uaaPage.getStatusElement().error( 'User is already listed.' );
+					Morebits.status.printUserText( reason, 'The comments you typed are provided below, in case you wish to manually post them under the existing report for this user at UAA:' );
 					return;
 				}
 				uaaPage.getStatusElement().status( 'Adding new report...' );
@@ -634,7 +635,7 @@ Twinkle.arv.callback.evaluate = function(e) {
 			/* falls through */
 		case "puppet":
 			var sockParameters = {
-				evidence: form.evidence.value.trimRight(),
+				evidence: form.evidence.value.trim(),
 				checkuser: form.checkuser.checked,
 				notify: form.notify.checked
 			};
@@ -647,7 +648,7 @@ Twinkle.arv.callback.evaluate = function(e) {
 				puppetReport = false;
 			}
 
-			sockParameters.uid = puppetReport ? form.sockmaster.value.trimRight() : uid;
+			sockParameters.uid = puppetReport ? form.sockmaster.value.trim() : uid;
 			sockParameters.sockpuppets = puppetReport ? [uid] : $.map( $('input:text[name=sockpuppet]',form), function(o){ return $(o).val() || null; });
 
 			Morebits.simpleWindow.setButtonsEnabled( false );
@@ -658,14 +659,13 @@ Twinkle.arv.callback.evaluate = function(e) {
 		case 'an3':
 			var diffs = $.map( $('input:checkbox[name=s_diffs]:checked',form), function(o){ return $(o).data('revinfo'); });
 
-			if(diffs.length < 3) {
-				alert("You must select at least three offending edits.");
+			if (diffs.length < 3 && !confirm("You have selected fewer than three offending edits. Do you wish to make the report anyway?")) {
 				return;
 			}
 
 			var warnings = $.map( $('input:checkbox[name=s_warnings]:checked',form), function(o){ return $(o).data('revinfo'); });
 
-			if(!warnings.length && !confirm("You have not selected any edits where you warn the offender; You wish to make the report anyway?")) {
+			if(!warnings.length && !confirm("You have not selected any edits where you warned the offender. Do you wish to make the report anyway?")) {
 				return;
 			}
 
@@ -673,7 +673,7 @@ Twinkle.arv.callback.evaluate = function(e) {
 			var free_resolves = $('input[name=s_resolves_free]').val();
 
 			var an3_next = function(free_resolves) {
-				if(!resolves.length && !free_resolves && !confirm("You have not selected any edits where you tries to resolve the issue; You wish to make the report anyway?")) {
+				if(!resolves.length && !free_resolves && !confirm("You have not selected any edits where you tried to resolve the issue. Do you wish to make the report anyway?")) {
 					return;
 				}
 
@@ -707,7 +707,7 @@ Twinkle.arv.callback.evaluate = function(e) {
 					var page = data.query.pages[pageid];
 					an3_next(page);
 				}).fail(function(data){
-					console.log( 'API failed :(', error );
+					console.log( 'API failed :(', data );
 				});
 			} else {
 				an3_next();
@@ -778,6 +778,17 @@ Twinkle.arv.processSock = function( params ) {
 	spiPage.setFollowRedirect( true );
 	spiPage.setEditSummary( 'Adding new report for [[Special:Contributions/' + params.uid + '|' + params.uid + ']].'+ Twinkle.getPref('summaryAd') );
 	spiPage.setAppendText( text );
+	switch( Twinkle.getPref( 'spiWatchReport' ) ) {
+		case 'yes':
+			spiPage.setWatchlist( true );
+			break;
+		case 'no':
+			spiPage.setWatchlistFromPreferences( false );
+			break;
+		default:
+			spiPage.setWatchlistFromPreferences( true );
+			break;
+	}
 	spiPage.append();
 	
 	Morebits.wiki.removeCheckpoint();  // all page updates have been started
@@ -785,7 +796,7 @@ Twinkle.arv.processSock = function( params ) {
 
 Twinkle.arv.processAN3 = function( params ) {
 	// prepare the AN3 report
-	var sha1, minid;
+	var minid;
 	for(var i = 0; i < params.diffs.length; ++i) {
 		if( params.diffs[i].parentid && (!minid || params.diffs[i].parentid < minid)) {
 			minid = params.diffs[i].parentid;
@@ -821,14 +832,14 @@ Twinkle.arv.processAN3 = function( params ) {
 			}
 		}
 
-		origtext = "";
+		var origtext = "";
 		if(orig) {
 			origtext = '{{diff2|' + orig.revid + '|' + orig.timestamp + '}} "' + orig.comment + '"';
 		}
 
 		var grouped_diffs = {};
 
-		var revid, parentid, lastid;
+		var parentid, lastid;
 		for(var j = 0; j < params.diffs.length; ++j) {
 			var cur = params.diffs[j];
 			if( cur.revid && cur.revid != parentid || lastid === null ) {
@@ -896,7 +907,7 @@ Twinkle.arv.processAN3 = function( params ) {
 		talkPage.append();
 		Morebits.wiki.removeCheckpoint();  // all page updates have been started
 	}).fail(function(data){
-		console.log( 'API failed :(', error );
+		console.log( 'API failed :(', data );
 	});
 };
 })(jQuery);

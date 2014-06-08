@@ -60,6 +60,63 @@ Morebits.isIPAddress = function ( address ) {
 
 
 /**
+ * **************** Morebits.sanitizeIPv6() ****************
+ * JavaScript translation of the MediaWiki core function IP::sanitizeIP() in
+ * includes/utils/IP.php.
+ * Converts an IPv6 address to the canonical form stored and used by MediaWiki.
+ */
+
+Morebits.sanitizeIPv6 = function ( address ) {
+	address = address.trim();
+	if ( address === '' ) {
+		return null;
+	}
+	if ( mw.util.isIPv4Address( address ) || !mw.util.isIPv6Address( address ) ) {
+		return address; // nothing else to do for IPv4 addresses or invalid ones
+	}
+	// Remove any whitespaces, convert to upper case
+	address = address.toUpperCase();
+	// Expand zero abbreviations
+	var abbrevPos = address.indexOf( '::' );
+	if ( abbrevPos > -1 ) {
+		// We know this is valid IPv6. Find the last index of the
+		// address before any CIDR number (e.g. "a:b:c::/24").
+		var CIDRStart = address.indexOf( '/' );
+		var addressEnd = ( CIDRStart > -1 ) ? CIDRStart - 1 : address.length - 1;
+		// If the '::' is at the beginning...
+		var repeat, extra, pad;
+		if ( abbrevPos === 0 ) {
+			repeat = '0:';
+			extra = ( address == '::' ) ? '0' : ''; // for the address '::'
+			pad = 9; // 7+2 (due to '::')
+		// If the '::' is at the end...
+		} else if ( abbrevPos === ( addressEnd - 1 ) ) {
+			repeat = ':0';
+			extra = '';
+			pad = 9; // 7+2 (due to '::')
+		// If the '::' is in the middle...
+		} else {
+			repeat = ':0';
+			extra = ':';
+			pad = 8; // 6+2 (due to '::')
+		}
+		var replacement = repeat;
+		pad -= address.split( ':' ).length - 1;
+		for ( var i = 1; i < pad; i++ ) {
+			replacement += repeat;
+		}
+		replacement += extra;
+		address = address.replace( '::', replacement );
+	}
+	// Remove leading zeros from each bloc as needed
+	address = address.replace( /(^|:)0+([0-9A-Fa-f]{1,4})/g, '$1$2' );
+
+	return address;
+};
+
+
+
+/**
  * **************** Morebits.quickForm ****************
  * Morebits.quickForm is a class for creation of simple and standard forms without much 
  * specific coding.
@@ -96,8 +153,10 @@ Morebits.isIPAddress = function ( address ) {
  *              - Attributes: name, label, disabled, event
  *   textarea  A big, multi-line text box.
  *              - Attributes: name, label, value, cols, rows, disabled, readonly
+ *   fragment  A DocumentFragment object.
+ *              - No attributes, and no global attributes except adminonly
  *
- * Global attributes: id, style, tooltip, extra, adminonly
+ * Global attributes: id, className, style, tooltip, extra, adminonly
  */
 
 Morebits.quickForm = function QuickForm( event, eventType ) {
@@ -164,6 +223,10 @@ Morebits.quickForm.element.prototype.compute = function QuickFormElementCompute(
 			node.addEventListener( data.eventType || 'submit', data.event , false );
 		}
 		break;
+	case 'fragment':
+		node = document.createDocumentFragment();
+		// fragments can't have any attributes, so just return it straight away
+		return [ node, node ];
 	case 'select':
 		node = document.createElement( 'div' );
 
@@ -269,20 +332,20 @@ Morebits.quickForm.element.prototype.compute = function QuickFormElementCompute(
 				if( current.disabled ) {
 					subnode.setAttribute( 'disabled', 'disabled' );
 				}
-				if( data.event ) {
-					subnode.addEventListener( 'change', data.event, false );
-				} else if ( current.event ) {
-					subnode.addEventListener( 'change', current.event, true );
-				}
 				label = cur_div.appendChild( document.createElement( 'label' ) );
 				label.appendChild( document.createTextNode( current.label ) );
 				label.setAttribute( 'for', cur_id );
 				if( current.tooltip ) {
 					Morebits.quickForm.element.generateTooltip( label, current );
 				}
+				// styles go on the label, doesn't make sense to style a checkbox/radio
+				if( current.style ) {
+					subnode.setAttribute( 'style', current.style );
+				}
+
 				var event;
 				if( current.subgroup ) {
-					var tmpgroup = current.subgroup;  // $.extend({}, current.subgroup); really needed?
+					var tmpgroup = current.subgroup;
 
 					if( ! $.isArray( tmpgroup ) ) {
 						tmpgroup = [ tmpgroup ];
@@ -293,11 +356,12 @@ Morebits.quickForm.element.prototype.compute = function QuickFormElementCompute(
 						id: id + '_' + i + '_subgroup'
 					});
 					$.each( tmpgroup, function( idx, el ) {
-						if( ! el.type ) {
-							el.type = data.type;
+						var newEl = $.extend( {}, el );
+						if( ! newEl.type ) {
+							newEl.type = data.type;
 						}
-						el.name = (current.name || data.name) + '.' + el.name;
-						subgroupRaw.append( el );
+						newEl.name = (current.name || data.name) + '.' + newEl.name;
+						subgroupRaw.append( newEl );
 					} );
 
 					var subgroup = subgroupRaw.render( cur_id );
@@ -334,6 +398,12 @@ Morebits.quickForm.element.prototype.compute = function QuickFormElementCompute(
 						}
 					};
 					subnode.addEventListener( 'change', event, true );
+				}
+				// add users' event last, so it can interact with the subgroup
+				if( data.event ) {
+					subnode.addEventListener( 'change', data.event, false );
+				} else if ( current.event ) {
+					subnode.addEventListener( 'change', current.event, true );
 				}
 			}
 		}
@@ -574,9 +644,18 @@ Morebits.quickForm.element.prototype.compute = function QuickFormElementCompute(
 	if( data.style ) {
 		childContainder.setAttribute( 'style', data.style );
 	}
+	if( data.className ) {
+		childContainder.className = ( childContainder.className ? 
+			childContainder.className + " " + data.className :
+			data.className );
+	}
 	childContainder.setAttribute( 'id', data.id || id );
 
 	return [ node, childContainder ];
+};
+
+Morebits.quickForm.element.autoNWSW = function() {
+	return $(this).offset().top > ($(document).scrollTop() + $(window).height() / 2) ? 'sw' : 'nw';
 };
 
 Morebits.quickForm.element.generateTooltip = function QuickFormElementGenerateTooltip( node, data ) {
@@ -585,7 +664,8 @@ Morebits.quickForm.element.generateTooltip = function QuickFormElementGenerateTo
 		}).appendTo(node).tipsy({
 			'fallback': data.tooltip,
 			'fade': true,
-			'gravity': $.fn.tipsy.autoWE,
+			'gravity': (data.type === "input" || data.type === "select") ? 
+				Morebits.quickForm.element.autoNWSW : $.fn.tipsy.autoWE,
 			'html': true,
 			'delayOut': 250
 		});
@@ -791,7 +871,6 @@ HTMLFormElement.prototype.getChecked = function( name, type ) {
  */
 
 RegExp.escape = function( text, space_fix ) {
-
 	text = $.escapeRE(text);
 
 	// Special MediaWiki escape - underscore/space are often equivalent
@@ -1036,28 +1115,6 @@ Morebits.array = {
 
 
 /**
- * **************** Morebits.getPageAssociatedUser ****************
- * Get the user associated with the currently-viewed page.
- * Currently works on User:, User talk:, Special:Contributions.
- */
-
-Morebits.getPageAssociatedUser = function(){
-	var thisNamespaceId = mw.config.get('wgNamespaceNumber');
-
-	if ( thisNamespaceId === 2 /* User: */ || thisNamespaceId === 3 /* User talk: */ ) {
-		return mw.config.get('wgTitle').split( '/' )[0];  // only first part before any slashes, to work on subpages
-	}
-
-	if ( thisNamespaceId === -1 /* Special: */ && mw.config.get('wgCanonicalSpecialPageName') === "Contributions" ) {
-		return $('table.mw-contributions-table input[name="target"]')[0].getAttribute('value');
-	}
-
-	return false;
-};
-
-
-
-/**
  * **************** Morebits.pageNameNorm ****************
  * Stores a normalized version of the wgPageName variable (underscores converted to spaces).
  * For queen/king/whatever and country!
@@ -1200,7 +1257,15 @@ Morebits.wikipedia.namespaces = {
 	'100': 'Portal',
 	'101': 'Portal talk',
 	'108': 'Book',
-	'109': 'Book talk'
+	'109': 'Book talk',
+	'118': 'Draft',
+	'119': 'Draft talk',
+	'446': 'Education Program',
+	'447': 'Education Program talk',
+	'710': 'TimedText',
+	'711': 'TimedText talk',
+	'828': 'Module',
+	'829': 'Module talk'
 };
 
 Morebits.wikipedia.namespacesFriendly = {
@@ -1223,7 +1288,15 @@ Morebits.wikipedia.namespacesFriendly = {
 	'100': 'Portal',
 	'101': 'Portal talk',
 	'108': 'Book',
-	'109': 'Book talk'
+	'109': 'Book talk',
+	'118': 'Draft',
+	'119': 'Draft talk',
+	'446': 'Education Program',
+	'447': 'Education Program talk',
+	'710': 'TimedText',
+	'711': 'TimedText talk',
+	'828': 'Module',
+	'829': 'Module talk'
 };
 
 
@@ -1235,10 +1308,10 @@ Morebits.wikipedia.namespacesFriendly = {
 
 Morebits.wiki = {};
 
-// Analyzes the HTML of the current page (i.e. no AJAX requests) to determine if it
-// is a redirect or soft redirect
+// Determines whether the current page is a redirect or soft redirect
+// (fails to detect soft redirects on edit, history, etc. pages)
 Morebits.wiki.isPageRedirect = function wikipediaIsPageRedirect() {
-	return !!($("span.redirectText").length > 0 || document.getElementById("softredirect"));
+	return !!(mw.config.get("wgIsRedirect") || document.getElementById("softredirect"));
 };
 
 
@@ -1287,7 +1360,7 @@ Morebits.wiki.actionCompleted.event = function() {
 	if( Morebits.wiki.actionCompleted.redirect ) {
 		// if it isn't a URL, make it one. TODO: This breaks on the articles 'http://', 'ftp://', and similar ones.
 		if( !( (/^\w+\:\/\//).test( Morebits.wiki.actionCompleted.redirect ) ) ) {
-			Morebits.wiki.actionCompleted.redirect = mw.util.wikiGetlink( Morebits.wiki.actionCompleted.redirect );
+			Morebits.wiki.actionCompleted.redirect = mw.util.getUrl( Morebits.wiki.actionCompleted.redirect );
 			if( Morebits.wiki.actionCompleted.followRedirect === false ) {
 				Morebits.wiki.actionCompleted.redirect += "?redirect=no";
 			}
@@ -1360,7 +1433,7 @@ Morebits.wiki.api.prototype = {
 			type: 'POST',
 			url: mw.util.wikiScript('api'),
 			data: Morebits.queryString.create(this.query),
-			datatype: 'xml'
+			dataType: 'xml'
 		}, callerAjaxParameters );
 
 		return $.ajax( ajaxparams ).done(
@@ -1574,6 +1647,8 @@ Morebits.wiki.api.prototype = {
  * 
  * getCreator(): returns the user who created the page following lookupCreator()
  *
+ * getCurrentID(): returns a string containing the current revision ID of the page
+ *
  * patrol(): marks the page as patrolled, if possible
  *
  * move(onSuccess, onFailure): Moves a page to another title
@@ -1665,6 +1740,7 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		revertCurID: null,
 		revertUser: null,
 		fullyProtected: false,
+		suppressProtectWarning: false,
 		conflictRetries: 0,
 		retries: 0,
 		 // callbacks
@@ -1768,6 +1844,10 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		ctx.revertOldID = oldID;
 	};
 
+	this.getCurrentID = function() {
+		return ctx.revertCurID;
+	};
+
 	this.getRevisionUser = function() {
 		return ctx.revertUser;
 	};
@@ -1836,6 +1916,10 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		}
 	};
 
+	this.suppressProtectWarning = function() {
+		ctx.suppressProtectWarning = true;
+	};
+
 	this.exists = function() {
 		return ctx.pageExists;
 	};
@@ -1860,8 +1944,9 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		};
 
 		if (ctx.editMode === 'all') {
-			ctx.loadQuery.rvprop = 'content';  // get the page content at the same time, if needed
+			ctx.loadQuery.rvprop = 'content|timestamp';  // get the page content at the same time, if needed
 		} else if (ctx.editMode === 'revert') {
+			ctx.loadQuery.rvprop = 'timestamp';
 			ctx.loadQuery.rvlimit = 1;
 			ctx.loadQuery.rvstartid = ctx.revertOldID;
 		}
@@ -1898,7 +1983,8 @@ Morebits.wiki.page = function(pageName, currentAction) {
 			return;
 		}
 
-		if (ctx.fullyProtected && !confirm('You are about to make an edit to the fully protected page "' + ctx.pageName +
+		if (ctx.fullyProtected && !ctx.suppressProtectWarning && 
+			!confirm('You are about to make an edit to the fully protected page "' + ctx.pageName +
 			(ctx.fullyProtected === 'infinity' ? '" (protected indefinitely)' : ('" (protection expiring ' + ctx.fullyProtected + ')')) +
 			'.  \n\nClick OK to proceed with the edit, or Cancel to skip this edit.')) {
 			ctx.statusElement.error("Edit to fully protected page was aborted.");
@@ -2135,7 +2221,8 @@ Morebits.wiki.page = function(pageName, currentAction) {
 			prop: 'info',
 			inprop: 'protection',
 			intoken: 'protect',
-			titles: ctx.pageName
+			titles: ctx.pageName,
+			watchlist: ctx.watchlistOption
 		};
 		if (ctx.followRedirect) {
 			query.redirects = '';  // follow all redirects
@@ -2222,20 +2309,19 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		}
 
 		ctx.editToken = $(xml).find('page').attr('edittoken');
-		if (!ctx.editToken)
-		{
+		if (!ctx.editToken) {
 			ctx.statusElement.error("Failed to retrieve edit token.");
 			ctx.onLoadFailure(this);
 			return;
 		}
 		ctx.loadTime = $(xml).find('page').attr('starttimestamp');
-		if (!ctx.loadTime)
-		{
+		if (!ctx.loadTime) {
 			ctx.statusElement.error("Failed to retrieve start timestamp.");
 			ctx.onLoadFailure(this);
 			return;
 		}
-		ctx.lastEditTime = $(xml).find('page').attr('touched');
+		ctx.lastEditTime = $(xml).find('rev').attr('timestamp');
+		ctx.revertCurID = $(xml).find('page').attr('lastrevid');
 
 		if (ctx.editMode === 'revert') {
 			ctx.revertCurID = $(xml).find('rev').attr('revid');
@@ -2310,7 +2396,7 @@ Morebits.wiki.page = function(pageName, currentAction) {
 			// real success
 			// default on success action - display link for edited page
 			var link = document.createElement('a');
-			link.setAttribute('href', mw.util.wikiGetlink(ctx.pageName) );
+			link.setAttribute('href', mw.util.getUrl(ctx.pageName) );
 			link.appendChild(document.createTextNode(ctx.pageName));
 			ctx.statusElement.info(['completed (', link, ')']);
 			if (ctx.onSaveSuccess) {
@@ -2320,19 +2406,29 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		}
 
 		// errors here are only generated by extensions which hook APIEditBeforeSave within MediaWiki
-		// Wikimedia wikis should only return spam blacklist errors and captchas
-		var blacklist = $(xml).find('edit').attr('spamblacklist');
+		// Wikimedia wikis should only return spam blacklist errors, captchas, and AbuseFilter messages
+		var $editNode = $(xml).find('edit');
+		var blacklist = $editNode.attr('spamblacklist');
 
 		if (blacklist) {
 			var code = document.createElement('code');
 			code.style.fontFamily = "monospace";
 			code.appendChild(document.createTextNode(blacklist));
 			ctx.statusElement.error(['Could not save the page because the URL ', code, ' is on the spam blacklist.']);
-		}
-		else if ( $(xml).find('captcha').length > 0 ) {
+		} else if ( $(xml).find('captcha').length > 0 ) {
 			ctx.statusElement.error("Could not save the page because the wiki server wanted you to fill out a CAPTCHA.");
-		}
-		else {
+		} else if ( $editNode.attr('code') === 'abusefilter-disallowed' ) {
+			ctx.statusElement.error('The edit was disallowed by the edit filter rule "' + $editNode.attr('info').substring(17) + '".');
+		} else if ( $editNode.attr('info').indexOf('Hit AbuseFilter:') === 0 ) {
+			var div = document.createElement('div');
+			div.className = "toccolours";
+			div.style.fontWeight = "normal";
+			div.style.color = "black";
+			div.innerHTML = $editNode.attr('warning');
+			ctx.statusElement.error([ 'The following warning was returned by the edit filter: ', div, 'If you wish to proceed with the edit, please carry it out again. This warning wil not appear a second time.' ]);
+			// XXX provide the user with a way to automatically retry the action if they so choose -
+			// I can't see how to do this without creating a UI dependency on Morebits.wiki.page though -- TTO
+		} else {
 			ctx.statusElement.error("Unknown error received from API while saving page");
 		}
 
@@ -2423,7 +2519,8 @@ Morebits.wiki.page = function(pageName, currentAction) {
 		// extract protection info
 		if (Morebits.userIsInGroup('sysop')) {
 			var editprot = $(xml).find('pr[type="edit"]');
-			if (editprot.length > 0 && editprot.attr('level') === 'sysop' && !confirm('You are about to move the fully protected page "' + ctx.pageName +
+			if (editprot.length > 0 && editprot.attr('level') === 'sysop' && !ctx.suppressProtectWarning && 
+				!confirm('You are about to move the fully protected page "' + ctx.pageName +
 				(editprot.attr('expiry') === 'infinity' ? '" (protected indefinitely)' : ('" (protection expiring ' + editprot.attr('expiry') + ')')) +
 				'.  \n\nClick OK to proceed with the move, or Cancel to skip this move.')) {
 				ctx.statusElement.error("Move of fully protected page was aborted.");
@@ -2475,7 +2572,8 @@ Morebits.wiki.page = function(pageName, currentAction) {
 
 		// extract protection info
 		var editprot = $(xml).find('pr[type="edit"]');
-		if (editprot.length > 0 && editprot.attr('level') === 'sysop' && !confirm('You are about to delete the fully protected page "' + ctx.pageName +
+		if (editprot.length > 0 && editprot.attr('level') === 'sysop' && !ctx.suppressProtectWarning &&
+			!confirm('You are about to delete the fully protected page "' + ctx.pageName +
 			(editprot.attr('expiry') === 'infinity' ? '" (protected indefinitely)' : ('" (protection expiring ' + editprot.attr('expiry') + ')')) +
 			'.  \n\nClick OK to proceed with the deletion, or Cancel to skip this deletion.')) {
 			ctx.statusElement.error("Deletion of fully protected page was aborted.");
@@ -2500,9 +2598,31 @@ Morebits.wiki.page = function(pageName, currentAction) {
 			query.watch = 'true';
 		}
 
-		ctx.deleteProcessApi = new Morebits.wiki.api("deleting page...", query, ctx.onDeleteSuccess, ctx.statusElement, ctx.onDeleteFailure);
+		ctx.deleteProcessApi = new Morebits.wiki.api("deleting page...", query, ctx.onDeleteSuccess, ctx.statusElement, fnProcessDeleteError);
 		ctx.deleteProcessApi.setParent(this);
 		ctx.deleteProcessApi.post();
+	};
+
+	// callback from deleteProcessApi.post()
+	var fnProcessDeleteError = function() {
+
+		var errorCode = ctx.deleteProcessApi.getErrorCode();
+
+		// check for "Database query error"
+		if ( errorCode === "internal_api_error_DBQueryError" && ctx.retries++ < ctx.maxRetries ) {
+
+			ctx.statusElement.info("Database query error, retrying");
+			--Morebits.wiki.numberOfActionsLeft;  // allow for normal completion if retry succeeds
+			ctx.deleteProcessApi.post(); // give it another go!
+
+		// hard error, give up
+		} else {
+
+			ctx.statusElement.error( "Failed to delete the page: " + ctx.deleteProcessApi.getErrorText() );
+			if (ctx.onDeleteFailure) {
+				ctx.onDeleteFailure.call(this, ctx.deleteProcessApi);  // invoke callback
+			}
+		}
 	};
 
 	var fnProcessProtect = function() {
@@ -3132,6 +3252,20 @@ Morebits.status.error = function( text, status ) {
 	return new Morebits.status( text, status, 'error' );
 };
 
+// display the user's rationale, comments, etc. back to them after a failure,
+// so they don't use it
+Morebits.status.printUserText = function( comments, message ) {
+	var p = document.createElement( 'p' );
+	p.textContent = message;
+	var div = document.createElement( 'div' );
+	div.className = 'toccolours';
+	div.style.marginTop = '0';
+	div.style.whiteSpace = 'pre-wrap';
+	div.textContent = comments;
+	p.appendChild( div );
+	Morebits.status.root.appendChild( p );
+};
+
 
 
 /**
@@ -3161,6 +3295,7 @@ Morebits.simpleWindow = function SimpleWindow( width, height ) {
 	var content = document.createElement( 'div' );
 	this.content = content;
 	content.className = 'morebits-dialog-content';
+	content.id = 'morebits-dialog-content-' + Math.round(Math.random() * 1e15);
 
 	this.height = height;
 
@@ -3178,8 +3313,20 @@ Morebits.simpleWindow = function SimpleWindow( width, height ) {
 				// dialogs and their content can be destroyed once closed
 				$(event.target).dialog("destroy").remove();
 			},
+			resizeStart: function(event, ui) {
+				this.scrollbox = $(this).find(".morebits-scrollbox")[0];
+				if (this.scrollbox) {
+					this.scrollbox.style.maxHeight = "none";
+				}
+			},
+			resizeEnd: function(event, ui) {
+				this.scrollbox = null;
+			},
 			resize: function(event, ui) {
 				this.style.maxHeight = "";
+				if (this.scrollbox) {
+					this.scrollbox.style.width = "";
+				}
 			}
 		});
 
@@ -3201,6 +3348,9 @@ Morebits.simpleWindow = function SimpleWindow( width, height ) {
 	var linksspan = document.createElement("span");
 	linksspan.className = "morebits-dialog-footerlinks";
 	$widget.find(".ui-dialog-buttonpane").append(buttonspan, linksspan);
+	
+	// resize the scrollbox with the dialog, if one is present
+	$widget.resizable("option", "alsoResize", "#" + this.content.id + " .morebits-scrollbox, #" + this.content.id);
 };
 
 Morebits.simpleWindow.prototype = {
@@ -3334,7 +3484,7 @@ Morebits.simpleWindow.prototype = {
 			$footerlinks.append(bullet);
 		}
 		var link = document.createElement("a");
-		link.setAttribute("href", mw.util.wikiGetlink(wikiPage) );
+		link.setAttribute("href", mw.util.getUrl(wikiPage) );
 		link.setAttribute("title", wikiPage);
 		link.setAttribute("target", "_blank");
 		link.textContent = text;
@@ -3356,7 +3506,7 @@ Morebits.simpleWindow.prototype = {
 // Morebits.simpleWindow object sitting around somewhere. Anyway, most of the time there will only be one
 // Morebits.simpleWindow open, so this shouldn't matter.
 Morebits.simpleWindow.setButtonsEnabled = function( enabled ) {
-	$(".morebits-dialog-buttons button").attr("disabled", !enabled);
+	$(".morebits-dialog-buttons button").prop("disabled", !enabled);
 };
 
 
