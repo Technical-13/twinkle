@@ -8,8 +8,8 @@
  ****************************************
  *** twinkleconfig.js: Preferences module
  ****************************************
- * Mode of invocation:     Adds configuration form to Wikipedia:Twinkle/Preferences and user 
-                           subpages named "/Twinkle preferences", and adds ad box to the top of user 
+ * Mode of invocation:     Adds configuration form to Wikipedia:Twinkle/Preferences and user
+                           subpages named "/Twinkle preferences", and adds ad box to the top of user
                            subpages belonging to the currently logged-in user which end in '.js'
  * Active on:              What I just said.  Yeah.
  * Config directives in:   TwinkleConfig
@@ -32,7 +32,7 @@ Twinkle.config.commonSets = {
 		db: "Custom rationale ({{db}})",
 		g1: "G1", g2: "G2", g3: "G3", g4: "G4", g5: "G5", g6: "G6", g7: "G7", g8: "G8", g10: "G10", g11: "G11", g12: "G12", g13: "G13",
 		a1: "A1", a2: "A2", a3: "A3", a5: "A5", a7: "A7", a9: "A9", a10: "A10", a11: "A11",
-		u1: "U1", u2: "U2", u3: "U3",
+		u1: "U1", u2: "U2", u3: "U3", u5: "U5",
 		f1: "F1", f2: "F2", f3: "F3", f7: "F7", f8: "F8", f9: "F9", f10: "F10",
 		c1: "C1",
 		t2: "T2", t3: "T3",
@@ -43,7 +43,7 @@ Twinkle.config.commonSets = {
 		"db",
 		"g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g10", "g11", "g12", "g13",
 		"a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11",
-		"u1", "u2", "u3",
+		"u1", "u2", "u3", "u5",
 		"f1", "f2", "f3", "f7", "f8", "f9", "f10",
 		"c1",
 		"t2", "t3",
@@ -55,7 +55,7 @@ Twinkle.config.commonSets = {
 		g1: "G1", g2: "G2", g3: "G3", g4: "G4", g6: 'G6 ("unnecessary disambig." and "copy-paste move" only)',
 		g10: "G10", g11: "G11", g12: "G12", g13: "G13",
 		a1: "A1", a2: "A2", a3: "A3", a5: "A5", a7: "A7", a9: "A9", a10: "A10", a11: "A11",
-		u3: "U3",
+		u3: "U3", u5: "U5",
 		f1: "F1", f2: "F2", f3: "F3", f7: "F7", f8: "F8", f9: "F9", f10: "F10",
 		c1: "C1",
 		t2: "T2", t3: "T3",
@@ -66,7 +66,7 @@ Twinkle.config.commonSets = {
 		"db",
 		"g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13",
 		"a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11",
-		"u3",
+		"u3", "u5",
 		"f1", "f2", "f3", "f7", "f9", "f10",
 		"c1",
 		"t2", "t3",
@@ -77,7 +77,7 @@ Twinkle.config.commonSets = {
 		db: "Custom rationale ({{db}})",
 		g1: "G1", g2: "G2", g3: "G3", g4: "G4", g5: "G5", g6: "G6", g7: "G7", g8: "G8", g10: "G10", g11: "G11", g12: "G12", g13: "G13",
 		a1: "A1", a2: "A2", a3: "A3", a5: "A5", a7: "A7", a9: "A9", a10: "A10", a11: "A11",
-		u1: "U1", u2: "U2", u3: "U3",
+		u1: "U1", u2: "U2", u3: "U3", u5: "U5",
 		f1: "F1", f2: "F2", f3: "F3", f4: "F4", f5: "F5", f6: "F6", f7: "F7", f8: "F8", f9: "F9", f10: "F10", f11: "F11",
 		c1: "C1",
 		t2: "T2", t3: "T3",
@@ -88,7 +88,7 @@ Twinkle.config.commonSets = {
 		"db",
 		"g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g10", "g11", "g12", "g13",
 		"a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11",
-		"u1", "u2", "u3",
+		"u1", "u2", "u3", "u5",
 		"f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11",
 		"c1",
 		"t2", "t3",
@@ -116,6 +116,8 @@ Twinkle.config.commonSets = {
 		"101": "Portal talk",
 		"108": "Book",
 		"109": "Book talk",
+		"118": "Draft",
+		"119": "Draft talk",
 		"710": "TimedText",
 		"711": "TimedText talk",
 		"828": "Module",
@@ -212,6 +214,21 @@ Twinkle.config.sections = [
 			label: "Add sockpuppet report pages to watchlist",
 			type: "enum",
 			enumValues: Twinkle.config.commonEnums.watchlist
+		}
+	]
+},
+
+{
+	title: "Block user",
+	adminOnly: true,
+	preferences: [
+		// TwinkleConfig.blankTalkpageOnIndefBlock (boolean)
+		// if true, blank the talk page when issuing an indef block notice (per [[WP:UW#Indefinitely blocked users]])
+		{
+			name: "blankTalkpageOnIndefBlock",
+			label: "Blank the talk page when indefinitely blocking users",
+			helptip: "See <a href=\"" + mw.util.getUrl("WP:UW#Indefinitely blocked users") + "\">WP:UW</a> for more information.",
+			type: "boolean"
 		}
 	]
 },
@@ -385,7 +402,6 @@ Twinkle.config.sections = [
 		{
 			name: "markSpeedyPagesAsPatrolled",
 			label: "Mark page as patrolled when tagging (if possible)",
-			helptip: "Due to technical limitations, pages are only marked as patrolled when they are reached via Special:NewPages.",
 			type: "boolean"
 		},
 
@@ -608,8 +624,7 @@ Twinkle.config.sections = [
 				"5": "Level 4im",
 				"6": "Single-issue notices",
 				"7": "Single-issue warnings",
-				"9": "Custom warnings",
-				"8": "Block (admin only)"
+				"9": "Custom warnings"
 			}
 		},
 
@@ -619,7 +634,7 @@ Twinkle.config.sections = [
 		{
 			name: "showSharedIPNotice",
 			label: "Add extra notice on shared IP talk pages",
-			helptip: "Notice used is {{SharedIPAdvice}}",
+			helptip: "Notice used is {{Shared IP advice}}",
 			type: "boolean"
 		},
 
@@ -631,15 +646,6 @@ Twinkle.config.sections = [
 			type: "boolean"
 		},
 
-		// TwinkleConfig.blankTalkpageOnIndefBlock (boolean)
-		// if true, blank the talk page when issuing an indef block notice (per [[WP:UW#Indefinitely blocked users]])
-		{
-			name: "blankTalkpageOnIndefBlock",
-			label: "Blank the talk page when indefinitely blocking users",
-			helptip: "See <a href=\"" + mw.util.getUrl("WP:UW#Indefinitely blocked users") + "\">WP:UW</a> for more information.",
-			adminOnly: true,
-			type: "boolean"
-		},
 		{
 			name: "customWarningList",
 			label: "Custom warning templates to display",
@@ -647,6 +653,12 @@ Twinkle.config.sections = [
 			type: "customList",
 			customListValueTitle: "Template name (no curly brackets)",
 			customListLabelTitle: "Text to show in warning list (also used as edit summary)"
+		},
+
+		{
+			name: "markXfdPagesAsPatrolled",
+			label: "Mark page as patrolled when nominating for AFD (if possible)",
+			type: "boolean"
 		}
 	]
 },
@@ -814,16 +826,6 @@ Twinkle.config.sections = [
 		// twinklebatchundelete.js: How many pages left in the process of being completed should allow a new batch to be initialized
 		{
 			name: "batchUndeleteMinCutOff",
-			type: "integer"
-		},
-		// twinkledelimages.js: How many files should be processed at a time
-		{
-			name: "deliChunks",
-			type: "integer"
-		},
-		// twinkledelimages.js: How many files should be processed maximum
-		{
-			name: "deliMax",
 			type: "integer"
 		},
 		// twinkledeprod.js: How many pages should be processed at a time

@@ -47,10 +47,12 @@ Twinkle.defaultConfig.twinkle = {
 	summaryAd: " ([[WP:TW|TW]])",
 	deletionSummaryAd: " ([[WP:TW|TW]])",
 	protectionSummaryAd: " ([[WP:TW|TW]])",
-	userTalkPageMode: "window",
+	userTalkPageMode: "tab",
 	dialogLargeFont: false,
 	 // ARV
-	spiWatchReport: "default",
+	spiWatchReport: "yes",
+	 // Block
+	blankTalkpageOnIndefBlock: false,
 	 // Fluff (revert and rollback)
 	openTalkPage: [ "agf", "norm", "vand" ],
 	openTalkPageOnAutoRevert: false,
@@ -70,15 +72,14 @@ Twinkle.defaultConfig.twinkle = {
 	prodLogPageName: "PROD log",
 	 // CSD
 	speedySelectionStyle: "buttonClick",
-	speedyPromptOnG7: false,
 	watchSpeedyPages: [ "g3", "g5", "g10", "g11", "g12" ],
 	markSpeedyPagesAsPatrolled: true,
 	// these next two should probably be identical by default
-	notifyUserOnSpeedyDeletionNomination:    [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "t2", "t3", "p1", "p2" ],
-	welcomeUserOnSpeedyDeletionNotification: [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "t2", "t3", "p1", "p2" ],
-	promptForSpeedyDeletionSummary: [ "db", "g1", "g2", "g3", "g4", "g6", "g7", "g8", "g10", "g11", "g12", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f2", "f4", "f7", "f8", "f10", "t2", "t3", "p1", "p2" ],
-	openUserTalkPageOnSpeedyDelete: [ "db", "g1", "g2", "g3", "g4", "g5", "g10", "g11", "g12", "a1", "a3", "a7", "a9", "a10", "a11", "f3", "f7", "f9", "u3", "t2", "p1" ],
-	deleteTalkPageOnDelete: false,
+	notifyUserOnSpeedyDeletionNomination:    [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
+	welcomeUserOnSpeedyDeletionNotification: [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
+	promptForSpeedyDeletionSummary: [],
+	openUserTalkPageOnSpeedyDelete: [ "db", "g1", "g2", "g3", "g4", "g5", "g10", "g11", "g12", "a1", "a3", "a7", "a9", "a10", "a11", "f3", "f7", "f9", "u3", "u5", "t2", "p1" ],
+	deleteTalkPageOnDelete: true,
 	deleteRedirectsOnDelete: true,
 	deleteSysopDefaultToTag: false,
 	speedyWindowHeight: 500,
@@ -87,29 +88,24 @@ Twinkle.defaultConfig.twinkle = {
 	speedyLogPageName: "CSD log",
 	noLogOnSpeedyNomination: [ "u1" ],
 	 // Unlink
-	unlinkNamespaces: [ "0", "100" ],
+	unlinkNamespaces: [ "0", "10", "100", "118" ],
 	 // Warn
 	defaultWarningGroup: "1",
 	showSharedIPNotice: true,
 	watchWarnings: true,
-	blankTalkpageOnIndefBlock: false,
 	customWarningList: [],
 	 // XfD
 	xfdWatchDiscussion: "default",
 	xfdWatchList: "no",
 	xfdWatchPage: "default",
 	xfdWatchUser: "default",
+	markXfdPagesAsPatrolled: true,
 	 // Hidden preferences
 	revertMaxRevisions: 50,
 	batchdeleteChunks: 50,
-	batchDeleteMinCutOff: 5,
 	batchMax: 5000,
 	batchProtectChunks: 50,
-	batchProtectMinCutOff: 5,
 	batchundeleteChunks: 50,
-	batchUndeleteMinCutOff: 5,
-	deliChunks: 500,
-	deliMax: 5000,
 	proddeleteChunks: 50
 };
 
@@ -242,6 +238,7 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 	}
 
 	//verify/normalize input
+	var skin = mw.config.get("skin");
 	type = ( skin === "vector" && type === "menu" && ( navigation === "left-navigation" || navigation === "right-navigation" )) ? "menu" : "";
 	var outerDivClass;
 	var innerDivClass;
@@ -251,7 +248,7 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 			if ( navigation !== "portal" && navigation !== "left-navigation" && navigation !== "right-navigation" ) {
 				navigation = "mw-panel";
 			}
-			outerDivClass = ( navigation === "mw-panel" ) ? "portal" : ( type === "menu" ? "vectorMenu extraMenu" : "vectorTabs extraMenu" );
+			outerDivClass = ( navigation === "mw-panel" ) ? "portal" : ( type === "menu" ? "vectorMenu" : "vectorTabs" );
 			innerDivClass = ( navigation === "mw-panel" ) ? "body" : ( type === "menu" ? "menu" : "" );
 			break;
 		case "modern":
@@ -272,11 +269,6 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 	var outerDiv = document.createElement( "div" );
 	outerDiv.className = outerDivClass + " emptyPortlet";
 	outerDiv.id = id;
-	if ( type === "menu" ) {
-		// Fix drop-down arrow image in Vector skin
-		outerDiv.style.backgroundImage = 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAQCAMAAAAlM38UAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRFsbGxmpqa3d3deXl58/n79CzHcQAAAAV0Uk5T/////wD7tg5TAAAAMklEQVR42mJgwQoYBkqYiZEZAhiZUFRDxWGicEPA4nBRhNlAcYQokpVMDEwD6kuAAAMAyGMFQVv5ldcAAAAASUVORK5CYII=")';
-		outerDiv.style.backgroundPosition = "right 60%";
-	}
 	if ( nextnode && nextnode.parentNode === root ) {
 		root.insertBefore( outerDiv, nextnode );
 	} else {
@@ -300,21 +292,21 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 			}
 		});
 
-		span = document.createElement( "span" );
-		span.appendChild( document.createTextNode( text ) );
-		a.appendChild( span );
 		h5.appendChild( a );
 	} else {
 		h5.appendChild( document.createTextNode( text ) );
 	}
 	outerDiv.appendChild( h5 );
 
-	var innerDiv = document.createElement( "div" ); // Not strictly necessary with type vectorTabs, or other skins.
-	innerDiv.className = innerDivClass;
-	outerDiv.appendChild(innerDiv);
+	var innerDiv = null;
+	if ( type === "menu" ) {
+		innerDiv = document.createElement( "div" );
+		innerDiv.className = innerDivClass;
+		outerDiv.appendChild(innerDiv);
+	}
 
 	var ul = document.createElement( "ul" );
-	innerDiv.appendChild( ul );
+	(innerDiv || outerDiv).appendChild( ul );
 
 	return outerDiv;
 };
@@ -336,6 +328,9 @@ Twinkle.addPortletLink = function( task, text, id, tooltip )
 			task();
 			ev.preventDefault();
 		});
+	}
+	if ( $.collapsibleTabs ) {
+		$.collapsibleTabs.handleResize();
 	}
 	return link;
 };
@@ -399,23 +394,29 @@ $.ajax({
 // For example, mw.loader.load(scriptpathbefore + "User:UncleDouggie/morebits-test.js" + scriptpathafter);
 
 Twinkle.load = function () {
-	    // Don't activate on special pages other than "Contributions" so that they load faster, especially the watchlist.
-	var isSpecialPage = ( mw.config.get('wgNamespaceNumber') === -1
-	    	&& mw.config.get('wgCanonicalSpecialPageName') !== "Contributions"
-	    	&& mw.config.get('wgCanonicalSpecialPageName') !== "Prefixindex" ),
+	// Don't activate on special pages other than "Contributions" so that they load faster, especially the watchlist.
+	var isSpecialPage = ( mw.config.get('wgNamespaceNumber') === -1 &&
+		mw.config.get('wgCanonicalSpecialPageName') !== "Contributions" &&
+		mw.config.get('wgCanonicalSpecialPageName') !== "Prefixindex" ),
 
-	    // Also, Twinkle is incompatible with Internet Explorer versions 8 or lower, so don't load there either.
-	    isOldIE = ( $.client.profile().name === 'msie' && $.client.profile().versionNumber < 9 );
+		// Also, Twinkle is incompatible with Internet Explorer versions 8 or lower, so don't load there either.
+		isOldIE = ( $.client.profile().name === 'msie' && $.client.profile().versionNumber < 9 );
 
-    // Prevent users that are not autoconfirmed from loading Twinkle as well.
+	// Prevent users that are not autoconfirmed from loading Twinkle as well.
 	if ( isSpecialPage || isOldIE || !Twinkle.userAuthorized ) {
 		return;
 	}
+
+	// Set custom Api-User-Agent header, for server-side logging purposes
+	Morebits.wiki.api.setApiUserAgent( 'Twinkle/2.0 (' + mw.config.get( 'wgDBname' ) + ')' );
 
 	// Load the modules in the order that the tabs should appears
 	// User/user talk-related
 	Twinkle.arv();
 	Twinkle.warn();
+	if ( Morebits.userIsInGroup('sysop') ) {
+		Twinkle.block();
+	}
 	Twinkle.welcome();
 	Twinkle.shared();
 	Twinkle.talkback();
@@ -433,7 +434,6 @@ Twinkle.load = function () {
 	Twinkle.config.init();
 	Twinkle.fluff.init();
 	if ( Morebits.userIsInGroup('sysop') ) {
-		Twinkle.delimages();
 		Twinkle.deprod();
 		Twinkle.batchdelete();
 		Twinkle.batchprotect();

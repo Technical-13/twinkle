@@ -15,7 +15,7 @@
 
 Twinkle.talkback = function() {
 
-	if ( Morebits.getPageAssociatedUser() === false ) {
+	if ( !mw.config.get('wgRelevantUserName') ) {
 		return;
 	}
 
@@ -23,7 +23,7 @@ Twinkle.talkback = function() {
 };
 
 Twinkle.talkback.callback = function( ) {
-	if( Morebits.getPageAssociatedUser() === mw.config.get("wgUserName") && !confirm("Is it really so bad that you're talking back to yourself?") ){
+	if( mw.config.get('wgRelevantUserName') === mw.config.get("wgUserName") && !confirm("Is it really so bad that you're talking back to yourself?") ){
 		return;
 	}
 
@@ -49,6 +49,10 @@ Twinkle.talkback.callback = function( ) {
 					{
 						label: "Talkback: other page",
 						value: "other"
+					},
+					{
+						label: "\"Please see\"",
+						value: "see"
 					},
 					{
 						label: "Noticeboard notification",
@@ -104,7 +108,7 @@ Twinkle.talkback.callback.optoutStatus = function(apiobj) {
 	var $el = $(xml).find('el');
 
 	if ($el.length) {
-		Twinkle.talkback.optout = Morebits.getPageAssociatedUser() + " prefers not to receive talkbacks";
+		Twinkle.talkback.optout = mw.config.get('wgRelevantUserName') + " prefers not to receive talkbacks";
 		var url = $el.text();
 		if (url.indexOf("reason=") > -1) {
 			Twinkle.talkback.optout += ": " + decodeURIComponent(url.substring(url.indexOf("reason=") + 7)) + ".";
@@ -178,7 +182,7 @@ var callback_change_target = function( e ) {
 					tooltip:"The username of the user on whose talk page you left a message.",
 					value: prev_page
 				});
-			
+
 			work_area.append({
 					type:"input",
 					name:"section",
@@ -191,7 +195,16 @@ var callback_change_target = function( e ) {
 			var noticeboard = work_area.append({
 					type: "select",
 					name: "noticeboard",
-					label: "Noticeboard:"
+					label: "Noticeboard:",
+					event: function(e) {
+						if (e.target.value === "afchd") {
+							Morebits.quickForm.overrideElementLabel(e.target.form.section, "Title of draft (excluding the prefix): ");
+							Morebits.quickForm.setElementTooltipVisibility(e.target.form.section, false);
+						} else {
+							Morebits.quickForm.resetElementLabel(e.target.form.section);
+							Morebits.quickForm.setElementTooltipVisibility(e.target.form.section, true);
+						}
+					}
 				});
 			noticeboard.append({
 					type: "option",
@@ -201,7 +214,6 @@ var callback_change_target = function( e ) {
 			noticeboard.append({
 					type: "option",
 					label: "WP:AN3 (Administrators' noticeboard/Edit warring)",
-					selected: true,
 					value: "an3"
 				});
 			noticeboard.append({
@@ -209,6 +221,12 @@ var callback_change_target = function( e ) {
 					label: "WP:ANI (Administrators' noticeboard/Incidents)",
 					selected: true,
 					value: "ani"
+				});
+			// let's keep AN and its cousins at the top
+			noticeboard.append({
+					type: "option",
+					label: "WP:AFCHD (Articles for creation/Help desk)",
+					value: "afchd"
 				});
 			noticeboard.append({
 					type: "option",
@@ -222,13 +240,13 @@ var callback_change_target = function( e ) {
 				});
 			noticeboard.append({
 					type: "option",
-					label: "WP:OTRS/N (OTRS noticeboard)",
-					value: "otrs"
+					label: "WP:HD (Help desk)",
+					value: "hd"
 				});
 			noticeboard.append({
 					type: "option",
-					label: "WP:HD (Help desk)",
-					value: "hd"
+					label: "WP:OTRS/N (OTRS noticeboard)",
+					value: "otrs"
 				});
 			noticeboard.append({
 					type: "option",
@@ -257,7 +275,7 @@ var callback_change_target = function( e ) {
 					tooltip:"The full page name where you left the message. For example: 'Wikipedia talk:Twinkle'.",
 					value: prev_page
 				});
-			
+
 			work_area.append({
 					type:"input",
 					name:"section",
@@ -272,6 +290,22 @@ var callback_change_target = function( e ) {
 					name:"section",
 					label:"Subject of email (optional)",
 					tooltip:"The subject line of the email you sent."
+				});
+			break;
+		case "see":
+			work_area.append({
+					type:"input",
+					name:"page",
+					label:"Full page name",
+					tooltip:"The full page name of where the discussion is being held. For example: 'Wikipedia talk:Twinkle'.",
+					value: prev_page
+				});
+			work_area.append({
+					type:"input",
+					name:"section",
+					label:"Linked section (optional)",
+					tooltip:"The section heading where the discussion is being held. For example: 'Merge proposal'.",
+					value: prev_section
 				});
 			break;
 	}
@@ -296,11 +330,11 @@ var callback_evaluate = function( e ) {
 	var tbtarget = e.target.getChecked( "tbtarget" )[0];
 	var page = null;
 	var section = e.target.section.value;
-	var fullUserTalkPageName = mw.config.get("wgFormattedNamespaces")[ mw.config.get("wgNamespaceIds").user_talk ] + ":" + Morebits.getPageAssociatedUser();
+	var fullUserTalkPageName = mw.config.get("wgFormattedNamespaces")[ mw.config.get("wgNamespaceIds").user_talk ] + ":" + mw.config.get('wgRelevantUserName');
 
-	if( tbtarget === "usertalk" || tbtarget === "other" ) {
+	if( tbtarget === "usertalk" || tbtarget === "other" || tbtarget === "see" ) {
 		page = e.target.page.value;
-		
+
 		if( tbtarget === "usertalk" ) {
 			if( !page ) {
 				alert("You must specify the username of the user whose talk page you left a message on.");
@@ -333,6 +367,10 @@ var callback_evaluate = function( e ) {
 	var text;
 	if ( tbtarget === "notice" ) {
 		switch (page) {
+			case "afchd":
+				text = "\n\n{{subst:AFCHD/u|" + section + "}} ~~~~";
+				talkpage.setEditSummary( "You have replies at the [[Wikipedia:AFCHD|Articles for Creation Help Desk]]" + Twinkle.getPref("summaryAd") );
+				break;
 			case "an":
 				text = "\n\n== " + Twinkle.getFriendlyPref("adminNoticeHeading") + " ==\n";
 				text += "{{subst:ANI-notice|thread=" + section + "|noticeboard=Wikipedia:Administrators' noticeboard}} ~~~~";
@@ -384,8 +422,17 @@ var callback_evaluate = function( e ) {
 
 		talkpage.setEditSummary("Notification: You've got mail" + Twinkle.getPref("summaryAd"));
 
-	} else {
-		//clean talkback heading: strip section header markers, were erroneously suggested in the documentation
+	} else if ( tbtarget === "see" ) {
+		text = "\n\n{{subst:Please see|location=" + tbPageName;
+		if (section) {
+			text += "#" + section;
+		}
+		text += "|more=" + message.trim() + "}}";
+		talkpage.setEditSummary("Please check the discussion at [[" + tbPageName +
+			(section ? ("#" + section) : "") + "]]" + Twinkle.getPref("summaryAd"));
+
+	} else {  // tbtarget one of mytalk, usertalk, other
+		// clean talkback heading: strip section header markers that were erroneously suggested in the documentation
 		text = "\n\n==" + Twinkle.getFriendlyPref("talkbackHeading").replace( /^\s*=+\s*(.*?)\s*=+$\s*/, "$1" ) + "==\n{{talkback|";
 		text += tbPageName;
 
@@ -401,8 +448,12 @@ var callback_evaluate = function( e ) {
 			text += "\n~~~~";
 		}
 
-		talkpage.setEditSummary("Talkback ([[" + (tbtarget === "other" ? "" : "User talk:") + tbPageName +
-			(section ? ("#" + section) : "") + "]])" + Twinkle.getPref("summaryAd"));
+		var editSummary = "Talkback ([[";
+		if (tbtarget !== "other" && !/^\s*user talk:/i.test(tbPageName)) {
+			editSummary += "User talk:";
+		}
+		editSummary += tbPageName + (section ? ("#" + section) : "") + "]])";
+		talkpage.setEditSummary(editSummary + Twinkle.getPref("summaryAd"));
 	}
 
 	talkpage.setAppendText( text );
